@@ -6,6 +6,12 @@ on:
     # Singapore weekdays: 08:00-23:59 SGT (same UTC day 00:00-15:59)
     - cron: '3/5 0-15 * * 1-5'
   workflow_dispatch:
+    inputs:
+      refresh_ath:
+        description: 'Also retrieve all-time highs'
+        required: true
+        type: boolean
+        default: false
   push:
     branches: [main]
     paths:
@@ -35,7 +41,8 @@ jobs:
         run: python -m unittest discover -s tests -p 'test_market_service.py' -v
       - name: Process
         env:
-          REFRESH_ATH: 'false'
+          REFRESH_ATH: ${{ github.event_name == 'workflow_dispatch' && inputs.refresh_ath || false }}
+          FORCE_PRICE_CHECK: ${{ github.event_name == 'workflow_dispatch' }}
           REFRESH_DIVIDENDS: 'false'
           REQUEST_ID: ${{ github.run_id }}
           TRIGGER_EVENT: ${{ github.event_name }}
@@ -46,7 +53,7 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A -- market-data.json data/stock-monitor.json
           if ! git diff --cached --quiet; then
-            git commit -m 'Update scheduled data'
+            git commit -m 'Update refreshed market data'
             git pull --rebase origin main
             git push origin HEAD:main
           else
