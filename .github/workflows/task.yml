@@ -45,6 +45,7 @@ jobs:
           git add market-data.json data/stock-monitor.json data/lookups
           if ! git diff --cached --quiet; then
             git commit -m 'Update scheduled data'
+            git pull --rebase origin main
             git push origin HEAD:main
           else
             echo 'No generated data changes.'
