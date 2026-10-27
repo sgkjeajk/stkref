@@ -1,17 +1,38 @@
 name: Task
 on:
   schedule:
-    # Singapore weekdays: 00:00-07:59 SGT (previous UTC day 16:00-23:59)
+    # Singapore weekdays: price checks every five minutes, expressed in UTC.
     - cron: '3/5 16-23 * * 0-4'
-    # Singapore weekdays: 08:00-23:59 SGT (same UTC day 00:00-15:59)
     - cron: '3/5 0-15 * * 1-5'
+    # Refresh full historical highs at 08:23, 14:23 and 20:23 Singapore time.
+    - cron: '23 0,6,12 * * 1-5'
   workflow_dispatch:
     inputs:
       refresh_ath:
-        description: 'Also retrieve all-time highs'
-        required: true
-        type: boolean
+        description: Also refresh all-time highs
+        required: false
         default: false
+        type: boolean
+      checker_cycles:
+        description: Number of checker cycles for this run (blank uses saved setting)
+        required: false
+        default: ''
+        type: string
+      force_price_check:
+        description: Run a price check even if scheduled checking is off
+        required: false
+        default: false
+        type: boolean
+      automatic_topup:
+        description: Internal queue top-up request
+        required: false
+        default: false
+        type: boolean
+      request_id:
+        description: Optional request correlation ID
+        required: false
+        default: ''
+        type: string
   push:
     branches: [main]
     paths:
@@ -20,16 +41,55 @@ on:
       - 'scripts/market_service.py'
       - 'scripts/market_hours.py'
       - 'scripts/google_price_fallback.py'
+      - 'scripts/checker_queue.py'
       - 'tests/test_market_service.py'
       - '.github/workflows/task.yml'
+      - '.github/workflows/checker-watchdog.yml'
 permissions:
   contents: write
-concurrency:
-  group: scheduled-work
-  cancel-in-progress: false
+  actions: write
 jobs:
-  update:
+  queue:
     runs-on: ubuntu-latest
+    concurrency:
+      group: stkref-checker-queue
+      cancel-in-progress: false
+    outputs:
+      allowed: ${{ steps.guard.outputs.allowed }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Top up the active checker queue
+        if: (github.event_name == 'schedule' && github.event.schedule != '23 0,6,12 * * 1-5') || inputs.automatic_topup == true
+        env:
+          QUEUE_MODE: queue
+          REPO: ${{ github.repository }}
+          WORKFLOW_FILE: task.yml
+          GH_TOKEN: ${{ github.token }}
+          CHECKER_CYCLES: ${{ inputs.checker_cycles }}
+          REFRESH_ATH: ${{ inputs.refresh_ath || false }}
+        run: python scripts/checker_queue.py
+      - name: Enforce the configured checker limit
+        id: guard
+        env:
+          QUEUE_MODE: guard
+          REPO: ${{ github.repository }}
+          WORKFLOW_FILE: task.yml
+          GH_TOKEN: ${{ github.token }}
+          FORCE_PRICE_CHECK: ${{ inputs.force_price_check || false }}
+          REFRESH_ATH: ${{ (github.event_name == 'schedule' && github.event.schedule == '23 0,6,12 * * 1-5') || inputs.refresh_ath || false }}
+        run: python scripts/checker_queue.py
+  update:
+    needs: queue
+    if: needs.queue.outputs.allowed == 'true'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: stkref-refresh-${{ github.run_id }}
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
         with:
@@ -39,23 +99,46 @@ jobs:
           python-version: '3.12'
       - name: Check
         run: python -m unittest discover -s tests -p 'test_market_service.py' -v
-      - name: Process
+      - name: Retrieve prices and history
         env:
-          REFRESH_ATH: ${{ github.event_name == 'workflow_dispatch' && inputs.refresh_ath || false }}
-          FORCE_PRICE_CHECK: ${{ github.event_name == 'workflow_dispatch' }}
-          REFRESH_DIVIDENDS: 'false'
-          REQUEST_ID: ${{ github.run_id }}
-          TRIGGER_EVENT: ${{ github.event_name }}
-        run: python scripts/github_market_update.py
-      - name: Save
+          REFRESH_ATH: ${{ (github.event_name == 'schedule' && github.event.schedule == '23 0,6,12 * * 1-5') || inputs.refresh_ath || false }}
+          FORCE_PRICE_CHECK: ${{ inputs.force_price_check || false }}
+          REQUEST_ID: ${{ inputs.request_id || github.run_id }}
+          TRIGGER_EVENT: ${{ inputs.automatic_topup == true && 'schedule' || github.event_name }}
+          CHECKER_CYCLES: ${{ inputs.checker_cycles }}
         run: |
+          settings="$(python - <<'PY'
+          import json
+          with open('data/stock-tickers.json', encoding='utf-8') as f:
+              cfg=json.load(f)
+          checker=cfg.get('priceChecker', {})
+          print(int(checker.get('cycles', 1)), int(checker.get('intervalMinutes', 15))*60)
+          PY
+          )"
+          set -- $settings
+          run_count="${CHECKER_CYCLES:-${1:-1}}"
+          sleep_seconds="${2:-900}"
+          case "$run_count" in ''|*[!0-9]*) run_count="${1:-1}" ;; esac
+          if [ "${REFRESH_ATH:-false}" = "true" ]; then run_count=1; fi
+          if [ -n "${LOOKUP_TICKER:-}" ]; then run_count=1; fi
+          if [ "$run_count" -lt 1 ]; then run_count=1; fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -A -- market-data.json data/stock-monitor.json
-          if ! git diff --cached --quiet; then
-            git commit -m 'Update refreshed market data'
-            git pull --rebase origin main
-            git push origin HEAD:main
-          else
-            echo 'No generated data changes.'
-          fi
+          for attempt in $(seq 1 "$run_count"); do
+            echo "STKREF price checker cycle $attempt of $run_count"
+            python scripts/github_market_update.py
+            git fetch origin main
+            if [ "$(git rev-parse HEAD:data/stock-tickers.json)" != "$(git rev-parse origin/main:data/stock-tickers.json)" ]; then
+              echo 'Checker settings changed during this run; stop and let the next run use the new settings.'
+              exit 0
+            fi
+            git add -A -- market-data.json data/stock-monitor.json data/lookups
+            if ! git diff --cached --quiet; then
+              git commit -m 'Update refreshed market data'
+              git pull --rebase origin main
+              git push origin HEAD:main
+            fi
+            if [ "$attempt" -lt "$run_count" ]; then
+              sleep "$sleep_seconds"
+            fi
+          done
