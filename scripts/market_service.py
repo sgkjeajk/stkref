@@ -13,7 +13,7 @@ DEFAULT_PRICE_CHECKER = {
     'categories': {'ETF': True, 'Stock': True, 'Fund': True},
     'maxActiveCheckers': 3,
 }
-PRICE_CHECKER_INTERVALS = (5, 6, 8, 9, 10)
+PRICE_CHECKER_INTERVALS = (5, 6, 8, 9, 10, 15)
 PRICE_CHECKER_CYCLE_MIN = 1
 PRICE_CHECKER_TYPES = ('ETF', 'Stock', 'Fund')
 for directory_file in (ROOT/'data/symbol-directory').glob('*.json'):
