@@ -2,7 +2,7 @@ name: Checker Watchdog
 on:
   schedule:
     # Singapore weekdays: run every three hours (UTC offsets for 00:43–21:43 SGT)
-    - cron: '43 1,4,7,10,13,16 * * 1-5'
+    - cron: '43 1,4,7,10,13 * * 1-5'
     - cron: '43 16,19,22 * * 0-4'
   workflow_dispatch:
 permissions:
