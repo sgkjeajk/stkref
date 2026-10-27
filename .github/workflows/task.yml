@@ -1,7 +1,7 @@
 name: Task
 on:
   schedule:
-    - cron: '7,22,37,52 * * * 1-5'
+    - cron: '2/5 * * * 1-5'
       timezone: Asia/Singapore
   workflow_dispatch:
   push:
