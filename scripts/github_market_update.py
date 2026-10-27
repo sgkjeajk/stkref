@@ -73,8 +73,9 @@ if __name__=='__main__':
     else:
         config=validate(read_config())
         history=os.environ.get('REFRESH_ATH','false').lower()=='true'
+        manual=os.environ.get('FORCE_PRICE_CHECK','false').lower()=='true'
         eligible=None
-        if not history and not price_checker_enabled(config):
+        if not history and not manual and not price_checker_enabled(config):
             write_check_heartbeat(config,'skipped_price_checker_disabled',request_id,history,force=True)
             print('Skipped quote scraping: price checker is disabled in admin settings.')
             raise SystemExit(0)
