@@ -132,7 +132,7 @@ jobs:
               echo 'Checker settings changed during this run; stop and let the next run use the new settings.'
               exit 0
             fi
-            git add -A -- market-data.json data/stock-monitor.json data/lookups
+            git add -A -- market-data.json data/stock-monitor.json
             if ! git diff --cached --quiet; then
               git commit -m 'Update refreshed market data'
               git pull --rebase origin main
