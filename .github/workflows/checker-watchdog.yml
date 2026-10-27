@@ -1,0 +1,30 @@
+name: Checker Watchdog
+on:
+  schedule:
+    # Singapore weekdays: run every three hours (UTC offsets for 00:43–21:43 SGT)
+    - cron: '43 1,4,7,10,13,16 * * 1-5'
+    - cron: '43 16,19,22 * * 0-4'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: write
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: stkref-checker-queue
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Start a checker when the active queue is below its configured limit
+        env:
+          QUEUE_MODE: watchdog
+          REPO: ${{ github.repository }}
+          WORKFLOW_FILE: task.yml
+          GH_TOKEN: ${{ github.token }}
+        run: python scripts/checker_queue.py
