@@ -36,7 +36,7 @@ jobs:
           REFRESH_ATH: 'false'
           REFRESH_DIVIDENDS: 'false'
           REQUEST_ID: ${{ github.run_id }}
-          TRIGGER_EVENT: workflow_dispatch
+          TRIGGER_EVENT: ${{ github.event_name }}
         run: python scripts/github_market_update.py
       - name: Save
         run: |
