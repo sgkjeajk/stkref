@@ -13,7 +13,7 @@ DEFAULT_PRICE_CHECKER = {
     'categories': {'ETF': True, 'Stock': True, 'Fund': True},
     'maxActiveCheckers': 3,
 }
-PRICE_CHECKER_INTERVALS = (5, 6, 8, 9, 10, 15)
+PRICE_CHECKER_INTERVALS = (5, 6, 8, 9, 10, 15, 30)
 PRICE_CHECKER_CYCLE_MIN = 1
 PRICE_CHECKER_TYPES = ('ETF', 'Stock', 'Fund')
 for directory_file in (ROOT/'data/symbol-directory').glob('*.json'):
@@ -92,7 +92,7 @@ def validate(data):
     }
     if type(checker['enabled'])!=bool: raise ValueError('Price checker enabled setting must be true or false.')
     if type(checker['intervalMinutes'])!=int or checker['intervalMinutes'] not in PRICE_CHECKER_INTERVALS:
-        raise ValueError('Price checker interval must be 5, 6, 8, 9 or 10 minutes.')
+        raise ValueError('Price checker interval must be one of 5, 6, 8, 9, 10, 15 or 30 minutes.')
     if type(checker['cycles'])!=int or checker['cycles'] < PRICE_CHECKER_CYCLE_MIN:
         raise ValueError('Price checker cycles must be a positive whole number.')
     if type(checker['maxActiveCheckers'])!=int or checker['maxActiveCheckers'] < 1:
