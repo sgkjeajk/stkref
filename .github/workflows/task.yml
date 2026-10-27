@@ -104,6 +104,7 @@ jobs:
           REFRESH_ATH: ${{ (github.event_name == 'schedule' && github.event.schedule == '23 0,6,12 * * 1-5') || inputs.refresh_ath || false }}
           FORCE_PRICE_CHECK: ${{ inputs.force_price_check || false }}
           REQUEST_ID: ${{ inputs.request_id || github.run_id }}
+          EVERYDAYCOMPASS_TOKEN: ${{ secrets.EVERYDAYCOMPASS_TOKEN }}
           TRIGGER_EVENT: ${{ inputs.automatic_topup == true && 'schedule' || github.event_name }}
           CHECKER_CYCLES: ${{ inputs.checker_cycles }}
         run: |
@@ -137,6 +138,17 @@ jobs:
               git commit -m 'Update refreshed market data'
               git pull --rebase origin main
               git push origin HEAD:main
+              if [ -n "${EVERYDAYCOMPASS_TOKEN:-}" ]; then
+                curl --fail --silent --show-error --retry 3 \
+                  -X POST 'https://api.github.com/repos/myai118/EverydayCompass/dispatches' \
+                  -H "Accept: application/vnd.github+json" \
+                  -H "Authorization: Bearer ${EVERYDAYCOMPASS_TOKEN}" \
+                  -H "X-GitHub-Api-Version: 2022-11-28" \
+                  -H 'Content-Type: application/json' \
+                  --data '{"event_type":"stkref-refresh"}'
+              else
+                echo "::warning::EVERYDAYCOMPASS_TOKEN is not configured; the five-minute EverydayCompass fallback sync will copy this refresh later."
+              fi
             fi
             if [ "$attempt" -lt "$run_count" ]; then
               sleep "$sleep_seconds"
