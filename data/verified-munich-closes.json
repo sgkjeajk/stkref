@@ -1,0 +1,30 @@
+{
+  "ticker": "GQC0.MU",
+  "isin": "LU0690374961",
+  "currency": "EUR",
+  "source_url": "https://www.boerse-muenchen.de/fonds/LU0690374961/",
+  "verified_at": "2026-10-19T02:50:00Z",
+  "verification": "One-time visual verification of dated exchange chart. Automatic retrieval from GitHub returned HTTP 403.",
+  "closes": [
+    {
+      "date": "2026-10-12",
+      "close": 58.231
+    },
+    {
+      "date": "2026-10-13",
+      "close": 58.35
+    },
+    {
+      "date": "2026-10-14",
+      "close": 58.35
+    },
+    {
+      "date": "2026-10-15",
+      "close": 58.562
+    },
+    {
+      "date": "2026-10-16",
+      "close": 58.775
+    }
+  ]
+}
