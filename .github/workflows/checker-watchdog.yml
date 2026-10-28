@@ -2,7 +2,7 @@ name: Checker Watchdog
 on:
   # Check the saved top-up rule on every start and every outcome.
   workflow_run:
-    workflows: [Task]
+    workflows: [Task, 'STKREF single-check *']
     types: [in_progress, completed]
     branches: [main]
   schedule:

@@ -122,11 +122,18 @@ class QueueTests(unittest.TestCase):
         self.assertEqual(len(calls), 10)
         self.assertEqual(self.execute(count=15)[0], [])
 
+    def test_dynamic_single_check_run_names_match_the_event_filter(self):
+        import fnmatch
+        controller = (Path(__file__).resolve().parents[1]/'.github/workflows/checker-watchdog.yml').read_text()
+        self.assertIn("'STKREF single-check *'", controller)
+        self.assertTrue(fnmatch.fnmatchcase('STKREF single-check 40790013133','STKREF single-check *'))
+        self.assertFalse(fnmatch.fnmatchcase('Daily','STKREF single-check *'))
+
     def test_workflow_completion_recovery_covers_failures(self):
         root = Path(__file__).resolve().parents[1]
         controller = (root / '.github/workflows/checker-watchdog.yml').read_text()
         worker = (root / '.github/workflows/task.yml').read_text()
-        self.assertIn('workflows: [Task]', controller)
+        self.assertIn("workflows: [Task, 'STKREF single-check *']", controller)
         self.assertIn('types: [in_progress, completed]', controller)
         self.assertNotIn('conclusion ==', controller)
         self.assertNotIn('if: success()', controller)
