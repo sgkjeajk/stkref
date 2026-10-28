@@ -42,6 +42,8 @@ on:
       - 'scripts/market_hours.py'
       - 'scripts/google_price_fallback.py'
       - 'scripts/checker_queue.py'
+      - 'scripts/copy_market_data.py'
+      - 'tests/test_copy_market_data.py'
       - 'tests/test_market_service.py'
       - '.github/workflows/task.yml'
       - '.github/workflows/checker-watchdog.yml'
@@ -98,7 +100,9 @@ jobs:
         with:
           python-version: '3.12'
       - name: Check
-        run: python -m unittest discover -s tests -p 'test_market_service.py' -v
+        run: |
+          python -m unittest discover -s tests -p 'test_market_service.py' -v
+          python -m unittest discover -s tests -p 'test_copy_market_data.py' -v
       - name: Retrieve prices and history
         env:
           REFRESH_ATH: ${{ (github.event_name == 'schedule' && github.event.schedule == '23 0,6,12 * * 1-5') || inputs.refresh_ath || false }}
@@ -153,18 +157,10 @@ jobs:
                 exit 1
               fi
             done
-            if [ "$published" = true ]; then
-              if [ -n "${EVERYDAYCOMPASS_TOKEN:-}" ]; then
-                curl --fail --silent --show-error --retry 3 \
-                  -X POST 'https://api.github.com/repos/myai118/EverydayCompass/dispatches' \
-                  -H "Accept: application/vnd.github+json" \
-                  -H "Authorization: Bearer ${EVERYDAYCOMPASS_TOKEN}" \
-                  -H "X-GitHub-Api-Version: 2022-11-28" \
-                  -H 'Content-Type: application/json' \
-                  --data '{"event_type":"stkref-refresh"}'
-              else
-                echo "::warning::EVERYDAYCOMPASS_TOKEN is not configured; the five-minute EverydayCompass fallback sync will copy this refresh later."
-              fi
+            # Run after source publication, even when this cycle was unchanged:
+            # an earlier failed destination copy can then recover on the next cycle.
+            if ! python scripts/copy_market_data.py; then
+              echo '::warning::Market copy did not complete; source checker will continue and retry next cycle.'
             fi
             if [ "$attempt" -lt "$run_count" ]; then
               sleep "$sleep_seconds"
