@@ -166,3 +166,15 @@ jobs:
               sleep "$sleep_seconds"
             fi
           done
+      - name: Hand off to the next checker
+        if: success()
+        env:
+          QUEUE_MODE: watchdog
+          REPO: ${{ github.repository }}
+          WORKFLOW_FILE: task.yml
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Read current settings before requesting the next bounded checker run.
+          git fetch origin main
+          git checkout origin/main -- data/stock-tickers.json scripts/checker_queue.py
+          python scripts/checker_queue.py
