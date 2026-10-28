@@ -18,54 +18,54 @@ def runs(count):
 
 
 class QueueTests(unittest.TestCase):
-    def execute(self, count=0, enabled=True, cycles=10, limit=5, mode='watchdog', **env):
+    def execute(self, count=0, enabled=True, cycles=10, threshold=5, batch=10, mode='watchdog', **env):
         with tempfile.NamedTemporaryFile() as out:
             environment = {'QUEUE_MODE': mode, 'REPO': 'owner/repo', 'GH_TOKEN': 'test',
                            'GITHUB_RUN_ID': '1', 'GITHUB_OUTPUT': out.name, **env}
             with patch.dict(os.environ, environment, clear=True), \
-                 patch.object(queue, 'settings', return_value=(enabled, cycles, limit)), \
+                 patch.object(queue, 'settings', return_value=(enabled, cycles, threshold, batch)), \
                  patch.object(queue, 'active_runs', return_value=runs(count)), \
                  patch.object(queue, 'dispatch') as dispatch, \
                  contextlib.redirect_stdout(io.StringIO()):
                 queue.main()
                 return dispatch.call_args_list, Path(out.name).read_text()
 
-    def test_empty_pool_fills_five_slots_with_ten_cycles_each(self):
+    def test_empty_pool_adds_ten_jobs_with_ten_cycles_each(self):
         calls, _ = self.execute()
-        self.assertEqual(len(calls), 5)
+        self.assertEqual(len(calls), 10)
         self.assertTrue(all(call.args[2] == 10 for call in calls))
 
-    def test_only_missing_slots_are_filled(self):
+    def test_every_count_zero_through_five_adds_exactly_ten(self):
         for count in range(6):
             with self.subTest(count=count):
-                self.assertEqual(len(self.execute(count=count)[0]), 5-count)
+                self.assertEqual(len(self.execute(count=count)[0]), 10)
 
-    def test_at_or_above_limit_never_dispatches(self):
-        for count in (5, 6, 10):
+    def test_above_threshold_never_dispatches(self):
+        for count in (6, 10, 15, 16):
             self.assertEqual(self.execute(count=count)[0], [])
 
     def test_disabled_never_replenishes(self):
         self.assertEqual(self.execute(enabled=False)[0], [])
 
     def test_single_cycle_setting_still_replenishes(self):
-        calls, _ = self.execute(cycles=1, limit=2)
+        calls, _ = self.execute(cycles=1, batch=2)
         self.assertEqual(len(calls), 2)
         self.assertTrue(all(c.args[2] == 1 for c in calls))
 
-    def test_guard_keeps_five_oldest_when_six_runs_overlap(self):
-        allowed = [queue.admitted(runs(6), n, 5) for n in range(1, 7)]
-        self.assertEqual(allowed, [True]*5 + [False])
+    def test_guard_allows_all_fifteen_batch_jobs_and_rejects_sixteenth(self):
+        allowed = [queue.admitted(runs(16), n, 15) for n in range(1, 17)]
+        self.assertEqual(allowed, [True]*15 + [False])
 
     def test_guard_includes_current_run_when_api_visibility_lags(self):
         self.assertTrue(queue.admitted({}, 99, 5))
         self.assertFalse(queue.admitted(runs(5), 99, 5))
 
     def test_guard_existing_worker_not_rejected_by_new_arrivals(self):
-        _, output = self.execute(count=9, mode='guard')
+        _, output = self.execute(count=19, mode='guard')
         self.assertEqual(output, 'allowed=true\n')
 
     def test_guard_excess_newcomer_rejected(self):
-        _, output = self.execute(count=6, mode='guard', GITHUB_RUN_ID='6')
+        _, output = self.execute(count=16, mode='guard', GITHUB_RUN_ID='16')
         self.assertEqual(output, 'allowed=false\n')
 
     def test_disabled_guard_and_manual_override(self):
@@ -82,7 +82,7 @@ class QueueTests(unittest.TestCase):
 
     def test_failed_dispatch_stops_instead_of_claiming_success(self):
         with patch.object(queue, 'dispatch', side_effect=SystemExit('denied')), \
-             patch.object(queue, 'settings', return_value=(True, 10, 5)), \
+             patch.object(queue, 'settings', return_value=(True, 10, 5, 10)), \
              patch.object(queue, 'active_runs', return_value={}), \
              patch.dict(os.environ, {'QUEUE_MODE':'watchdog','REPO':'owner/repo','GH_TOKEN':'test'}), \
              contextlib.redirect_stdout(io.StringIO()):
@@ -120,18 +120,18 @@ class QueueTests(unittest.TestCase):
         config = {'priceChecker': {'enabled': True, 'cycles': 10, 'maxActiveCheckers': 5,
                                   'categories': dict.fromkeys(('ETF','Stock','Fund'), False)}}
         with patch('builtins.open', unittest.mock.mock_open(read_data=json.dumps(config))):
-            self.assertEqual(queue.settings(), (False, 10, 5))
+            self.assertEqual(queue.settings(), (False, 10, 5, 10))
 
     def test_settings_category_selection_and_custom_limit(self):
-        config = {'priceChecker': {'enabled': True, 'cycles': 7, 'maxActiveCheckers': 3,
+        config = {'priceChecker': {'enabled': True, 'cycles': 7, 'maxActiveCheckers': 3, 'refillThreshold': 2, 'topUpJobs': 7,
                                   'categories': {'ETF':True,'Stock':False,'Fund':False}}}
         with patch('builtins.open', unittest.mock.mock_open(read_data=json.dumps(config))):
-            self.assertEqual(queue.settings(), (True, 7, 3))
+            self.assertEqual(queue.settings(), (True, 7, 2, 7))
 
-    def test_completed_worker_replacement_then_no_duplicate_refill(self):
-        calls, _ = self.execute(count=4)
-        self.assertEqual(len(calls), 1)
-        self.assertEqual(self.execute(count=5)[0], [])
+    def test_five_remaining_adds_ten_then_fifteen_adds_none(self):
+        calls, _ = self.execute(count=5)
+        self.assertEqual(len(calls), 10)
+        self.assertEqual(self.execute(count=15)[0], [])
 
     def test_workflow_completion_recovery_covers_failures(self):
         root = Path(__file__).resolve().parents[1]

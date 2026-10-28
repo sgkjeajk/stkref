@@ -34,8 +34,11 @@ def settings():
         categories.get(key, True) for key in ("ETF", "Stock", "Fund")
     )
     cycles = max(1, int(checker.get("cycles", 1)))
-    limit = max(1, min(10, int(checker.get("maxActiveCheckers", 5))))
-    return enabled, cycles, limit
+    threshold = int(checker.get("refillThreshold", 5))
+    batch = int(checker.get("topUpJobs", 10))
+    if threshold < 0 or batch < 1:
+        raise ValueError("Refill threshold must be non-negative and top-up jobs positive")
+    return enabled, cycles, threshold, batch
 
 
 def active_runs(repo, workflow, token):
@@ -79,10 +82,11 @@ def main():
     repo = os.environ["REPO"]
     workflow = os.environ.get("WORKFLOW_FILE", "task.yml")
     token = os.environ["GH_TOKEN"]
-    enabled, saved_cycles, limit = settings()
+    enabled, saved_cycles, threshold, batch = settings()
+    limit = threshold + batch
     runs = active_runs(repo, workflow, token)
     count = len(runs)
-    print(f"Active STKREF checker runs: {count}; configured limit: {limit}")
+    print(f"Active STKREF checker runs: {count}; refill at or below: {threshold}; add: {batch}; admission ceiling: {limit}")
     for run in sorted(runs.values(), key=lambda item: item.get("created_at", "")):
         print(f"- {run['id']} {run['status']} {run.get('event')} {run.get('html_url')}")
 
@@ -104,14 +108,14 @@ def main():
 
     # Called by the serialized controller only, after a worker has fully finished.
     # Reserve each successful dispatch locally: do not rely on API visibility
-    # of a just-dispatched run to calculate the remaining deficit.
-    missing = max(0, limit - count)
+    # of a just-dispatched run to calculate the batch size.
+    missing = batch if count <= threshold else 0
     for slot in range(missing):
         request_id = mode + "-" + dt.datetime.now(dt.timezone.utc).strftime("%Y%m%d%H%M%S%f")
         dispatch(repo, workflow, saved_cycles, token, request_id)
         print(f"Dispatched {saved_cycles}-cycle checker {slot + 1} of {missing}: {request_id}")
     if not missing:
-        print("The configured active-run limit is already reached; no run dispatched.")
+        print("Active count is above the refill threshold; no jobs added.")
 
 
 if __name__ == "__main__":

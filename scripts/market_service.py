@@ -11,7 +11,9 @@ DEFAULT_PRICE_CHECKER = {
     'intervalMinutes': 8,
     'cycles': 30,
     'categories': {'ETF': True, 'Stock': True, 'Fund': True},
-    'maxActiveCheckers': 3,
+    'maxActiveCheckers': 3,  # Legacy clients only; queue uses threshold and batch.
+    'refillThreshold': 5,
+    'topUpJobs': 10,
 }
 PRICE_CHECKER_INTERVALS = (5, 6, 8, 9, 10, 15, 30)
 PRICE_CHECKER_CYCLE_MIN = 1
@@ -88,7 +90,9 @@ def validate(data):
         'intervalMinutes': raw_checker.get('intervalMinutes',DEFAULT_PRICE_CHECKER['intervalMinutes']),
         'cycles': raw_checker.get('cycles',DEFAULT_PRICE_CHECKER['cycles']),
         'categories': {**DEFAULT_PRICE_CHECKER['categories'], **raw_checker.get('categories',{})},
-        'maxActiveCheckers': raw_checker.get('maxActiveCheckers',DEFAULT_PRICE_CHECKER['maxActiveCheckers'])
+        'maxActiveCheckers': raw_checker.get('maxActiveCheckers',DEFAULT_PRICE_CHECKER['maxActiveCheckers']),
+        'refillThreshold': raw_checker.get('refillThreshold', DEFAULT_PRICE_CHECKER['refillThreshold']),
+        'topUpJobs': raw_checker.get('topUpJobs', DEFAULT_PRICE_CHECKER['topUpJobs'])
     }
     if type(checker['enabled'])!=bool: raise ValueError('Price checker enabled setting must be true or false.')
     if type(checker['intervalMinutes'])!=int or checker['intervalMinutes'] not in PRICE_CHECKER_INTERVALS:
@@ -97,6 +101,10 @@ def validate(data):
         raise ValueError('Price checker cycles must be a positive whole number.')
     if type(checker['maxActiveCheckers'])!=int or checker['maxActiveCheckers'] < 1:
         raise ValueError('Max active checker jobs must be a positive whole number.')
+    if type(checker['refillThreshold']) != int or checker['refillThreshold'] < 0:
+        raise ValueError('Refill threshold must be a non-negative whole number.')
+    if type(checker['topUpJobs']) != int or checker['topUpJobs'] < 1:
+        raise ValueError('Top-up jobs must be a positive whole number.')
     if not isinstance(checker['categories'],dict): raise ValueError('Invalid price checker category settings.')
     checker['categories']={k: checker['categories'].get(k, True) for k in PRICE_CHECKER_TYPES}
     if any(type(v)!=bool for v in checker['categories'].values()):

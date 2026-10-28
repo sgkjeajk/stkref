@@ -8,6 +8,18 @@ import market_service
 
 
 class ValidateConfigTests(unittest.TestCase):
+    def test_preserves_batch_job_settings_separately_from_cycles(self):
+        cfg = {"version": 1, "instruments": [], "priceChecker": {
+            "cycles": 7, "refillThreshold": 5, "topUpJobs": 10}}
+        checker = market_service.validate(cfg)["priceChecker"]
+        self.assertEqual((checker["cycles"], checker["refillThreshold"], checker["topUpJobs"]), (7, 5, 10))
+
+    def test_rejects_invalid_job_threshold_and_batch(self):
+        for key, value in (("refillThreshold", -1), ("refillThreshold", True),
+                           ("topUpJobs", 0), ("topUpJobs", 1.5)):
+            with self.subTest(key=key, value=value), self.assertRaises(ValueError):
+                market_service.validate({"version": 1, "instruments": [], "priceChecker": {key:value}})
+
     def test_preserves_complete_saved_metadata_without_lookup(self):
         original_lookup = market_service.lookup
         try:

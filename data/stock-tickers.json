@@ -1,19 +1,21 @@
 {
   "version": 1,
-  "revision": 43,
+  "revision": 44,
   "refreshIntervalMinutes": 15,
   "priceChecker": {
     "enabled": true,
     "intervalMinutes": 6,
     "cycles": 10,
-    "maxActiveCheckers": 5,
+    "maxActiveCheckers": 15,
     "categories": {
       "ETF": true,
       "Stock": true,
       "Fund": false
-    }
+    },
+    "refillThreshold": 5,
+    "topUpJobs": 10
   },
-  "saved_at": "2026-10-28T19:36:17Z",
+  "saved_at": "2026-10-28T23:25:54.826952Z",
   "instruments": [
     {
       "ticker": "ES3.SI",
@@ -22,7 +24,7 @@
       "name": "State Street SPDR Straits Times Index ETF",
       "region": "Singapore",
       "type": "ETF",
-      "metadata_source": "State Street reference · 7 Oct 2026"
+      "metadata_source": "State Street reference \u00b7 7 Oct 2026"
     },
     {
       "ticker": "GQC0.MU",
@@ -40,7 +42,7 @@
       "name": "Invesco QQQ Trust, Series 1",
       "region": "United States",
       "type": "ETF",
-      "metadata_source": "Nasdaq directory · 6 Oct 2026"
+      "metadata_source": "Nasdaq directory \u00b7 6 Oct 2026"
     },
     {
       "ticker": "QQQM",
@@ -49,7 +51,7 @@
       "name": "Invesco NASDAQ 100 ETF",
       "region": "United States",
       "type": "ETF",
-      "metadata_source": "Nasdaq directory · 6 Oct 2026"
+      "metadata_source": "Nasdaq directory \u00b7 6 Oct 2026"
     },
     {
       "ticker": "SPY",
@@ -58,7 +60,7 @@
       "name": "State Street SPDR S&P 500 ETF Trust",
       "region": "United States",
       "type": "ETF",
-      "metadata_source": "Nasdaq directory · 6 Oct 2026"
+      "metadata_source": "Nasdaq directory \u00b7 6 Oct 2026"
     },
     {
       "ticker": "VOO",
@@ -67,7 +69,7 @@
       "name": "Vanguard S&P 500 ETF",
       "region": "United States",
       "type": "ETF",
-      "metadata_source": "Nasdaq directory · 6 Oct 2026"
+      "metadata_source": "Nasdaq directory \u00b7 6 Oct 2026"
     },
     {
       "ticker": "VTI",
@@ -76,7 +78,7 @@
       "name": "Vanguard Morningstar Total Stock Market ETF",
       "region": "United States",
       "type": "ETF",
-      "metadata_source": "Nasdaq directory · 6 Oct 2026"
+      "metadata_source": "Nasdaq directory \u00b7 6 Oct 2026"
     },
     {
       "ticker": "1155.KL",
@@ -94,7 +96,7 @@
       "name": "Apple Inc. - Common Stock",
       "region": "United States",
       "type": "Stock",
-      "metadata_source": "Nasdaq directory · 6 Oct 2026"
+      "metadata_source": "Nasdaq directory \u00b7 6 Oct 2026"
     },
     {
       "ticker": "AMZN",
@@ -103,7 +105,7 @@
       "name": "Amazon.com, Inc. - Common Stock",
       "region": "United States",
       "type": "Stock",
-      "metadata_source": "Nasdaq directory · 6 Oct 2026"
+      "metadata_source": "Nasdaq directory \u00b7 6 Oct 2026"
     },
     {
       "ticker": "BN4.SI",
@@ -112,7 +114,7 @@
       "name": "Keppel Ltd.",
       "region": "Singapore",
       "type": "Stock",
-      "metadata_source": "Yahoo Finance quote page · 11 Oct 2026"
+      "metadata_source": "Yahoo Finance quote page \u00b7 11 Oct 2026"
     },
     {
       "ticker": "D05.SI",
@@ -121,7 +123,7 @@
       "name": "DBS Group Holdings Ltd",
       "region": "Singapore",
       "type": "Stock",
-      "metadata_source": "SGX reference · 7 Oct 2026"
+      "metadata_source": "SGX reference \u00b7 7 Oct 2026"
     },
     {
       "ticker": "GOOGL",
@@ -130,7 +132,7 @@
       "name": "Alphabet Inc. - Class A Common Stock",
       "region": "United States",
       "type": "Stock",
-      "metadata_source": "Nasdaq directory · 6 Oct 2026"
+      "metadata_source": "Nasdaq directory \u00b7 6 Oct 2026"
     },
     {
       "ticker": "META",
@@ -139,7 +141,7 @@
       "name": "Meta Platforms, Inc. - Class A Common Stock",
       "region": "United States",
       "type": "Stock",
-      "metadata_source": "Nasdaq directory · 6 Oct 2026"
+      "metadata_source": "Nasdaq directory \u00b7 6 Oct 2026"
     },
     {
       "ticker": "MSFT",
@@ -148,7 +150,7 @@
       "name": "Microsoft Corporation - Common Stock",
       "region": "United States",
       "type": "Stock",
-      "metadata_source": "Nasdaq directory · 6 Oct 2026"
+      "metadata_source": "Nasdaq directory \u00b7 6 Oct 2026"
     },
     {
       "ticker": "NDAQ",
@@ -157,7 +159,7 @@
       "name": "Nasdaq, Inc. - Common Stock",
       "region": "United States",
       "type": "Stock",
-      "metadata_source": "Nasdaq directory · 6 Oct 2026"
+      "metadata_source": "Nasdaq directory \u00b7 6 Oct 2026"
     },
     {
       "ticker": "NVDA",
@@ -166,7 +168,7 @@
       "name": "NVIDIA Corporation - Common Stock",
       "region": "United States",
       "type": "Stock",
-      "metadata_source": "Nasdaq directory · 6 Oct 2026"
+      "metadata_source": "Nasdaq directory \u00b7 6 Oct 2026"
     },
     {
       "ticker": "O39.SI",
@@ -175,7 +177,7 @@
       "name": "Oversea-Chinese Banking Corporation Ltd",
       "region": "Singapore",
       "type": "Stock",
-      "metadata_source": "SGX reference · 7 Oct 2026"
+      "metadata_source": "SGX reference \u00b7 7 Oct 2026"
     },
     {
       "ticker": "SHEL",
@@ -193,7 +195,7 @@
       "name": "Tesla, Inc.  - Common Stock",
       "region": "United States",
       "type": "Stock",
-      "metadata_source": "Nasdaq directory · 6 Oct 2026"
+      "metadata_source": "Nasdaq directory \u00b7 6 Oct 2026"
     },
     {
       "ticker": "U11.SI",
@@ -202,7 +204,7 @@
       "name": "United Overseas Bank Ltd",
       "region": "Singapore",
       "type": "Stock",
-      "metadata_source": "SGX reference · 7 Oct 2026"
+      "metadata_source": "SGX reference \u00b7 7 Oct 2026"
     },
     {
       "ticker": "Z74.SI",
@@ -247,7 +249,7 @@
       "name": "Franklin Income A(Mdis)SGD-H1",
       "region": "Singapore",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance fund page · 11 Oct 2026"
+      "metadata_source": "Yahoo Finance fund page \u00b7 11 Oct 2026"
     },
     {
       "ticker": "0P0000AAP5.SI",
@@ -283,7 +285,7 @@
       "name": "Schroder Asian Income SGD A Dis",
       "region": "Singapore",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance fund page · 11 Oct 2026"
+      "metadata_source": "Yahoo Finance fund page \u00b7 11 Oct 2026"
     },
     {
       "ticker": "0P0000Y077.SI",
@@ -319,7 +321,7 @@
       "name": "abrdn-Global Dynamic Div AGrs MIncAHSGD",
       "region": "SES",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P00011VRH.SI",
@@ -328,7 +330,7 @@
       "name": "BGF European Equity Income A6 SGD H",
       "region": "SES",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P0001HOCP.SI",
@@ -337,7 +339,7 @@
       "name": "BGF Global Bond Income A6 SGD H",
       "region": "SES",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P0001E2A6.SI",
@@ -346,7 +348,7 @@
       "name": "BGF World Technology A2 SGD H",
       "region": "SES",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P0001CM2M.SI",
@@ -355,7 +357,7 @@
       "name": "BNP Paribas Aqua C RH SGD MD D",
       "region": "SES",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P0001PMVA",
@@ -364,7 +366,7 @@
       "name": "Capital Group AMBAL LUX Bfydm",
       "region": "OTC Markets OTCPK",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P00018U5Y.SI",
@@ -373,7 +375,7 @@
       "name": "Eastspring Inv Asian Low Vol Eq ASDM",
       "region": "SES",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P0001ME6T.SI",
@@ -382,7 +384,7 @@
       "name": "Ascend Asia Trust Global Equity A SGD H",
       "region": "SES",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P0001D7HH.SI",
@@ -391,7 +393,7 @@
       "name": "First Sentier Bridge Fund A (M Dist)",
       "region": "SES",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P00006OSF.SI",
@@ -400,7 +402,7 @@
       "name": "First Sentier Bridge Fund A (H Dist)",
       "region": "SES",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P0001OPAK.SI",
@@ -409,7 +411,7 @@
       "name": "Franklin Shariah Technology A Acc SGD",
       "region": "SES",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P00006OHZ.SI",
@@ -418,7 +420,7 @@
       "name": "FSSA Regional China A Acc",
       "region": "SES",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P0000JUE8.SI",
@@ -427,7 +429,7 @@
       "name": "Fullerton SGD Cash A",
       "region": "SES",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P0000W8JB.SI",
@@ -436,7 +438,7 @@
       "name": "Fullerton SGD Income B",
       "region": "SES",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P0000W76V.F",
@@ -445,7 +447,7 @@
       "name": "Fundsmith Equity R EUR Acc",
       "region": "Frankfurt",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P0000RU7Y.L",
@@ -454,7 +456,7 @@
       "name": "Fundsmith Equity R Acc",
       "region": "LSE",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P00006FYP.SI",
@@ -463,7 +465,7 @@
       "name": "Infinity Global Stock Index SGD",
       "region": "SES",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P0000YJFF.SI",
@@ -472,7 +474,7 @@
       "name": "JPM Global Income A mth SGD Hdg",
       "region": "SES",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P0001RN2G.SI",
@@ -481,7 +483,7 @@
       "name": "Lion-Bibds Islamic Enh Lqdty A SGDH Dis",
       "region": "SES",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P0001666N.SI",
@@ -490,7 +492,7 @@
       "name": "LionGlobal Singapore Div Eq SGD QDist",
       "region": "SES",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P0001I7SB.SI",
@@ -499,7 +501,7 @@
       "name": "MAMG Global Sukuk Income-I A SGD Inc",
       "region": "SES",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P0001I7S8.SI",
@@ -508,7 +510,7 @@
       "name": "Maybank Asian Growth and Inc A SGD Acc",
       "region": "SES",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P0001OHDD.SI",
@@ -517,7 +519,7 @@
       "name": "Maybank Asian Growth and Inc-I A SGD Acc",
       "region": "SES",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P0001OHDE.SI",
@@ -526,7 +528,7 @@
       "name": "Maybank Asian Growth and Inc-I A SGD Dis",
       "region": "SES",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P0001UKZ7.SI",
@@ -535,7 +537,7 @@
       "name": "Maybank Glb Shariah MA I Fd A SGD Inc",
       "region": "SES",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P00015GRZ.SI",
@@ -544,7 +546,7 @@
       "name": "Neuberger Strategic Income SGD A Mn Dis",
       "region": "SES",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P00006X58",
@@ -553,7 +555,7 @@
       "name": "Pictet-Security P USD",
       "region": "OTC Markets OTCPK",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P0000XMS6.SI",
@@ -562,7 +564,7 @@
       "name": "PIMCO GIS Income Administrative SGDH Inc",
       "region": "SES",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P00006G0B.SI",
@@ -571,7 +573,7 @@
       "name": "Schroder Asian Growth SGD A Dis",
       "region": "SES",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P0000Y1XJ.SI",
@@ -580,7 +582,7 @@
       "name": "Schroder Asian Income SGD X Dis",
       "region": "SES",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P00006G0K.SI",
@@ -589,7 +591,7 @@
       "name": "Schroder Singapore Trust SGD A Dis",
       "region": "SES",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P0001D4AK.SI",
@@ -598,7 +600,7 @@
       "name": "United SGD Money Market B SGD",
       "region": "SES",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P0000T1B1.SI",
@@ -607,7 +609,7 @@
       "name": "AB Emerging Markets Debt A2 SGD H",
       "region": "SES",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P0000T1AS.SI",
@@ -616,7 +618,7 @@
       "name": "AB Global High Yield A2 SGD H",
       "region": "SES",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P0001FL3C.SI",
@@ -625,7 +627,7 @@
       "name": "Allianz Best Styles Global Eq ET H2 SGD",
       "region": "SES",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P0001IL1V.SI",
@@ -634,7 +636,7 @@
       "name": "Allianz China A Shares AT SGD",
       "region": "SES",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P0001IGY0.SI",
@@ -643,7 +645,7 @@
       "name": "Allianz Global High Yield AMg H2 SGD",
       "region": "SES",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P0001I4B8.SI",
@@ -652,7 +654,7 @@
       "name": "Allianz Thematica AT H2 SGD",
       "region": "SES",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P0001N40P.SI",
@@ -661,7 +663,7 @@
       "name": "Allspring Lux Glb Eq Enh Inc A SGDHGDist",
       "region": "SES",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P00006O9U.SI",
@@ -670,7 +672,7 @@
       "name": "Amova Singapore Div Eq SGD",
       "region": "SES",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P00010B1T.SI",
@@ -679,7 +681,7 @@
       "name": "Amundi Fds US Bond A2 SGD H C",
       "region": "SES",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P0001PC8P",
@@ -688,7 +690,7 @@
       "name": "Ascend Asia Trust Global MA Gr A USD",
       "region": "OTC Markets OTCPK",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P0001PC8U",
@@ -697,7 +699,7 @@
       "name": "Ascend Asia Trust Global MA Inc A USD",
       "region": "OTC Markets OTCPK",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P00018GXP.SI",
@@ -706,7 +708,7 @@
       "name": "AXAWF Global High Yield Bds A Cap SGD H",
       "region": "SES",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P0001OR0L.SI",
@@ -715,7 +717,7 @@
       "name": "Baillie Gifford WW Asia ex Jpn A SGD Acc",
       "region": "SES",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P0001IXUF",
@@ -724,7 +726,7 @@
       "name": "Baillie Gifford WW US Equity Gr A USD",
       "region": "OTC Markets OTCPK",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P00009N7A.SI",
@@ -733,7 +735,7 @@
       "name": "BGF Global Allocation A2 SGD Hedged",
       "region": "SES",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P0001F4NU.SI",
@@ -742,7 +744,7 @@
       "name": "Canaccord Genuity Opp A SGD Hdg Acc",
       "region": "SES",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P00018ZTZ.SI",
@@ -751,7 +753,7 @@
       "name": "Federated Hermes Glb EM Eq R SGD Acc",
       "region": "SES",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P00017HVE.SI",
@@ -760,7 +762,7 @@
       "name": "Fidelity Global Financial Svcs A-Acc-SGD",
       "region": "SES",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P0001RQ7I.SI",
@@ -769,7 +771,7 @@
       "name": "Fidelity Global Technology A-Acc-SGD H",
       "region": "SES",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P0000YWCI.SI",
@@ -778,7 +780,7 @@
       "name": "Franklin Global Sukuk A Mdis SGD",
       "region": "SES",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P0000PYTM.SI",
@@ -787,7 +789,7 @@
       "name": "Franklin India A(acc)SGD",
       "region": "SES",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P0000U879.SI",
@@ -796,7 +798,7 @@
       "name": "Franklin US Opportunities A(acc)SGD-H1",
       "region": "SES",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P0001SSOL.SI",
@@ -805,7 +807,7 @@
       "name": "Fullerton Lux Flexible Crdt Inc A SGDH D",
       "region": "SES",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P0001L7YH.SI",
@@ -814,7 +816,7 @@
       "name": "GS Global Future Gen Eq OC Acc SGD",
       "region": "SES",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P00015HVX",
@@ -823,7 +825,7 @@
       "name": "Guinness Global Equity Income C USD Acc",
       "region": "OTC Markets OTCPK",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P00014JQA",
@@ -832,7 +834,7 @@
       "name": "Guinness Global Innovators C USD ACC",
       "region": "OTC Markets OTCPK",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P0001QQ6S.SI",
@@ -841,7 +843,7 @@
       "name": "HSBC GIF Asia Bond S47M3HSGD",
       "region": "SES",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P0001RE6O.SI",
@@ -850,7 +852,7 @@
       "name": "HSBC GIF Asia Pac ex Jpn EqHiDivS48M2SGD",
       "region": "SES",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P0001BMQK",
@@ -859,7 +861,7 @@
       "name": "HSBC GIF Global Eq Clmt Trnstn AD",
       "region": "OTC Markets OTCPK",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P00016JAZ.SI",
@@ -868,7 +870,7 @@
       "name": "HSBC GIF Global Short Dur Bd ACHSGD",
       "region": "SES",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P0001R7JV.SI",
@@ -877,7 +879,7 @@
       "name": "HSBC Islamic Global Equity Index AC SGD",
       "region": "SES",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P0001RFVY.SI",
@@ -886,7 +888,7 @@
       "name": "HSBC Portfolios World Sel 5 AMFLXHSGD",
       "region": "SES",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P00006FYU",
@@ -895,7 +897,7 @@
       "name": "Infinity US 500 Stock Index USD",
       "region": "OTC Markets OTCPK",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P0001JDPZ.SI",
@@ -904,7 +906,7 @@
       "name": "Invesco Global Income A SGDH MD1",
       "region": "SES",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P0001JDPY",
@@ -913,7 +915,7 @@
       "name": "Invesco Global Income A USDH MD1",
       "region": "OTC Markets OTCPK",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P0000X071",
@@ -922,7 +924,7 @@
       "name": "JPM Global Income A mth USD Hdg",
       "region": "OTC Markets OTCPK",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P00011RFD",
@@ -931,7 +933,7 @@
       "name": "Lazard Emerging Markets Eq B Acc USD",
       "region": "OTC Markets OTCPK",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P00006FZD.SI",
@@ -940,7 +942,7 @@
       "name": "LionGlobal SGD Money Market SGD A",
       "region": "SES",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P0001BFPY.SI",
@@ -949,7 +951,7 @@
       "name": "Loomis Sayles US Growth Eq R/A H-SGD",
       "region": "SES",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P0001H0AT.SI",
@@ -958,7 +960,7 @@
       "name": "Manulife GF Glb MA Dvrs Inc AA SGDH MD G",
       "region": "SES",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P0001LJIP.SI",
@@ -967,7 +969,7 @@
       "name": "Mirova Thematic Sbscptn Ecoy R/A H-SGD",
       "region": "SES",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P0001BW40.SI",
@@ -976,7 +978,7 @@
       "name": "Neuberger US Equity Prm SGD A MD",
       "region": "SES",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P0000WX0N",
@@ -985,7 +987,7 @@
       "name": "Neuberger US Multi Cap Opps $ A Acc",
       "region": "OTC Markets OTCPK",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P0000SX14",
@@ -994,7 +996,7 @@
       "name": "Nordea 1 - Emerging Sust Strs Eq BP USD",
       "region": "OTC Markets OTCPK",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P0001LLU2.SI",
@@ -1003,7 +1005,7 @@
       "name": "PGIM Global Total Ret Bd SGDH A Dis (Q)",
       "region": "SES",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P0001S1E0.SI",
@@ -1012,7 +1014,7 @@
       "name": "PIMCO GIS Bal Inc & Gr M Ret SGD H IncII",
       "region": "SES",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P00018YBU.SI",
@@ -1021,7 +1023,7 @@
       "name": "PineBridge Asia exJapan SmCap Eq A5",
       "region": "SES",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P0001JLUD.SI",
@@ -1030,7 +1032,7 @@
       "name": "PineBridge Asia Pacific Invm Grd Bd A5HD",
       "region": "SES",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P0001IM92.SI",
@@ -1039,7 +1041,7 @@
       "name": "Robeco Credit Income BxH SGD Dist",
       "region": "SES",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P0000PTOL.SI",
@@ -1048,7 +1050,7 @@
       "name": "Schroder Global Emerging Market Opps",
       "region": "SES",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P00014NHG.SI",
@@ -1057,7 +1059,7 @@
       "name": "Schroder ISF Asn Div Mxmsr A Dis SGDH M",
       "region": "SES",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P0000TJ2I.SI",
@@ -1066,7 +1068,7 @@
       "name": "Schroder Multi-Asset Revolt 30 A SGD Acc",
       "region": "SES",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P0000TJ2J.SI",
@@ -1075,7 +1077,7 @@
       "name": "Schroder Multi-Asset Revolution 50",
       "region": "SES",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P0000TJ2K.SI",
@@ -1084,7 +1086,7 @@
       "name": "Schroder Multi-Asset Revolution 70",
       "region": "SES",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P0000N6XR.SI",
@@ -1093,7 +1095,7 @@
       "name": "Schroder Singapore Fixed Income A Acc",
       "region": "SES",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P0001KEXO.SI",
@@ -1102,7 +1104,7 @@
       "name": "United China A-Shares Innovt A SGD Acc",
       "region": "SES",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     },
     {
       "ticker": "0P0001E2J0.SI",
@@ -1111,7 +1113,7 @@
       "name": "United High Grade Corporate Bd ASGDAccH",
       "region": "SES",
       "type": "Fund",
-      "metadata_source": "Yahoo Finance exact-symbol chart metadata · 19 Oct 2026"
+      "metadata_source": "Yahoo Finance exact-symbol chart metadata \u00b7 19 Oct 2026"
     }
   ]
 }
