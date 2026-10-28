@@ -10,6 +10,7 @@ import urllib.request
 
 DESTINATION = 'myai118/EverydayCompass'
 BRANCH = 'main'
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def stamp(data):
@@ -86,7 +87,7 @@ def copy_snapshot(data, request, pause=time.sleep, dividends=None):
             # Non-forced update prevents overwriting other jobs' commits.
             request('PATCH', '/git/refs/heads/' + BRANCH,
                     {'sha': new_commit['sha'], 'force': False})
-            return 'Copied market snapshot and copy timestamp in one destination commit.'
+            return 'Checked market and dividend snapshots; copied newer data and timestamps in one destination commit.'
         except urllib.error.HTTPError as error:
             if error.code not in (409, 422, 429, 500, 502, 503, 504) or attempt == 2:
                 raise
@@ -98,13 +99,14 @@ def main():
     token = os.environ.get('EVERYDAYCOMPASS_TOKEN', '').strip()
     if not token:
         print('::warning::Direct market copy unavailable: EVERYDAYCOMPASS_TOKEN is missing. '
-              'Source refresh is saved; the checker retries the copy on its next cycle.')
+              'Source refresh is saved; the next queued checker retries delivery.')
         return 2
-    root = Path(__file__).resolve().parents[1]
+    root = ROOT
     try:
         data = json.loads((root / 'market-data.json').read_text(encoding='utf-8'))
         dividend_path = root / 'dividend-data.json'
-        dividends = json.loads(dividend_path.read_text(encoding='utf-8')) if dividend_path.exists() else None
+        dividends = json.loads(dividend_path.read_text(encoding='utf-8'))
+        stamp(dividends)  # Both source files are required before completion.
         print(copy_snapshot(data, github(token), dividends=dividends))
         return 0
     except urllib.error.HTTPError as error:
@@ -112,10 +114,10 @@ def main():
         print('Rejected endpoint: ' + error.url.split('?')[0])
         print('Required permissions: ' + error.headers.get('X-Accepted-GitHub-Permissions', 'not supplied'))
         print('::warning::Direct market copy failed: GitHub HTTP ' + str(error.code) +
-              '. Source refresh is saved; the checker retries the copy on its next cycle.')
+              '. Source refresh is saved; the next queued checker retries delivery.')
     except Exception as error:
         print('::warning::Direct market copy failed (' + type(error).__name__ +
-              '). Source refresh is saved; the checker retries the copy on its next cycle.')
+              '). Source refresh is saved; the next queued checker retries delivery.')
     return 1
 
 

@@ -1,10 +1,13 @@
 import base64
 import json
 import unittest
+import tempfile
+from unittest.mock import patch
 from urllib.error import HTTPError
 import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
+import copy_market_data
 from copy_market_data import copy_snapshot, validate
 
 
@@ -85,6 +88,40 @@ class CopyTests(unittest.TestCase):
         self.assertIn('dividend-data.json', paths)
         status = json.loads(remote.entries[0]['content'])
         self.assertEqual(status['source_dividend_generated_at'], dividends['generated_at'])
+
+    def test_market_and_dividend_updates_share_one_atomic_commit(self):
+        remote = Destination(snapshot(12))
+        dividends = {'generated_at':'2026-10-28T11:00:00Z'}
+        copy_snapshot(snapshot(13), remote, dividends=dividends)
+        self.assertEqual({e['path'] for e in remote.entries},
+                         {'market-data.json','dividend-data.json','refresh-sync-status.json'})
+        self.assertEqual(sum(method=='PATCH' for method,_,_ in remote.calls),1)
+        status = json.loads(next(e['content'] for e in remote.entries if e['path']=='refresh-sync-status.json'))
+        self.assertEqual(status['source_market_generated_at'],snapshot(13)['generated_at'])
+        self.assertEqual(status['source_dividend_generated_at'],dividends['generated_at'])
+
+    def test_entrypoint_reads_and_passes_both_source_files(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            (root/'market-data.json').write_text(json.dumps(snapshot(13)))
+            dividends={'generated_at':'2026-10-28T11:00:00Z'}
+            (root/'dividend-data.json').write_text(json.dumps(dividends))
+            with patch.object(copy_market_data,'ROOT',root), \
+                 patch.dict(copy_market_data.os.environ,{'EVERYDAYCOMPASS_TOKEN':'test'}), \
+                 patch.object(copy_market_data,'github',return_value='client'), \
+                 patch.object(copy_market_data,'copy_snapshot',return_value='Both checked') as send:
+                self.assertEqual(copy_market_data.main(),0)
+            send.assert_called_once_with(snapshot(13),'client',dividends=dividends)
+
+    def test_missing_dividend_file_cannot_report_success(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            (root/'market-data.json').write_text(json.dumps(snapshot(13)))
+            with patch.object(copy_market_data,'ROOT',root), \
+                 patch.dict(copy_market_data.os.environ,{'EVERYDAYCOMPASS_TOKEN':'test'}), \
+                 patch.object(copy_market_data,'copy_snapshot') as send:
+                self.assertEqual(copy_market_data.main(),1)
+            send.assert_not_called()
 
     def test_auth_failure_is_not_retried(self):
         calls = []

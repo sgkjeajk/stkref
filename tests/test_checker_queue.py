@@ -13,7 +13,7 @@ import checker_queue as queue
 
 
 def runs(count):
-    return {n: {'id': n, 'created_at': str(n), 'status': 'in_progress'}
+    return {n: {'id': n, 'created_at': str(n), 'status': 'in_progress', 'display_title': 'STKREF single-check '+str(n)}
             for n in range(1, count + 1)}
 
 
@@ -23,17 +23,17 @@ class QueueTests(unittest.TestCase):
             environment = {'QUEUE_MODE': mode, 'REPO': 'owner/repo', 'GH_TOKEN': 'test',
                            'GITHUB_RUN_ID': '1', 'GITHUB_OUTPUT': out.name, **env}
             with patch.dict(os.environ, environment, clear=True), \
-                 patch.object(queue, 'settings', return_value=(enabled, cycles, threshold, batch)), \
+                 patch.object(queue, 'settings', return_value=(enabled, 1, threshold, batch)), \
                  patch.object(queue, 'active_runs', return_value=runs(count)), \
                  patch.object(queue, 'dispatch') as dispatch, \
                  contextlib.redirect_stdout(io.StringIO()):
                 queue.main()
                 return dispatch.call_args_list, Path(out.name).read_text()
 
-    def test_empty_pool_adds_ten_jobs_with_ten_cycles_each(self):
+    def test_empty_pool_queues_ten_single_check_programs(self):
         calls, _ = self.execute()
         self.assertEqual(len(calls), 10)
-        self.assertTrue(all(call.args[2] == 10 for call in calls))
+        self.assertTrue(all(call.args[2] == 1 for call in calls))
 
     def test_every_count_zero_through_five_adds_exactly_ten(self):
         for count in range(6):
@@ -52,28 +52,11 @@ class QueueTests(unittest.TestCase):
         self.assertEqual(len(calls), 2)
         self.assertTrue(all(c.args[2] == 1 for c in calls))
 
-    def test_guard_allows_all_fifteen_batch_jobs_and_rejects_sixteenth(self):
-        allowed = [queue.admitted(runs(16), n, 15) for n in range(1, 17)]
-        self.assertEqual(allowed, [True]*15 + [False])
+    def test_legacy_guard_stops_old_parallel_workflows(self):
+        for count in (0, 5, 15):
+            self.assertEqual(self.execute(count=count, mode='guard')[1], 'allowed=false\n')
 
-    def test_guard_includes_current_run_when_api_visibility_lags(self):
-        self.assertTrue(queue.admitted({}, 99, 5))
-        self.assertFalse(queue.admitted(runs(5), 99, 5))
-
-    def test_guard_existing_worker_not_rejected_by_new_arrivals(self):
-        _, output = self.execute(count=19, mode='guard')
-        self.assertEqual(output, 'allowed=true\n')
-
-    def test_guard_excess_newcomer_rejected(self):
-        _, output = self.execute(count=16, mode='guard', GITHUB_RUN_ID='16')
-        self.assertEqual(output, 'allowed=false\n')
-
-    def test_disabled_guard_and_manual_override(self):
-        self.assertEqual(self.execute(enabled=False, mode='guard')[1], 'allowed=false\n')
-        self.assertEqual(self.execute(enabled=False, mode='guard', FORCE_PRICE_CHECK='true')[1], 'allowed=true\n')
-        self.assertEqual(self.execute(enabled=False, mode='guard', REFRESH_ATH='true')[1], 'allowed=true\n')
-
-    def test_guard_never_dispatches_children(self):
+    def test_legacy_guard_never_dispatches_children(self):
         self.assertEqual(self.execute(mode='guard')[0], [])
 
     def test_unrecognised_mode_fails(self):
@@ -94,11 +77,11 @@ class QueueTests(unittest.TestCase):
         def api(method, url, token):
             urls.append(url)
             if 'status=queued&' in url and 'page=1' == url[-6:]:
-                return {'workflow_runs': [{'id': n} for n in range(100)]}
+                return {'workflow_runs': [{'id': n, 'display_title': 'STKREF single-check '+str(n)} for n in range(100)]}
             if 'status=queued&' in url:
-                return {'workflow_runs': [{'id': 100}]}
+                return {'workflow_runs': [{'id': 100, 'display_title': 'STKREF single-check 100'}]}
             if 'status=in_progress&' in url:
-                return {'workflow_runs': [{'id': 0}]}
+                return {'workflow_runs': [{'id': 0, 'display_title': 'STKREF single-check 0'}]}
             return {'workflow_runs': []}
         with patch.object(queue, 'gh', side_effect=api):
             result = queue.active_runs('owner/repo', 'task.yml', 'test')
@@ -107,26 +90,32 @@ class QueueTests(unittest.TestCase):
         for state in ('waiting', 'pending', 'requested'):
             self.assertTrue(any('status='+state+'&' in u for u in urls))
 
-    def test_dispatch_preserves_saved_cycles_and_main_branch(self):
+    def test_old_parallel_runs_do_not_block_the_new_serial_queue(self):
+        def api(method, url, token):
+            return {'workflow_runs': [{'id': 99, 'display_title': 'Task'}]}
+        with patch.object(queue, 'gh', side_effect=api):
+            self.assertEqual(queue.active_runs('owner/repo', 'task.yml', 'test'), {})
+
+    def test_dispatch_enforces_one_check_and_preserves_main_branch(self):
         with patch.object(queue, 'gh') as api:
             queue.dispatch('owner/repo', 'task.yml', 10, 'test', 'request')
         args = api.call_args.args
         self.assertEqual(args[0], 'POST')
         self.assertEqual(args[3]['ref'], 'main')
-        self.assertEqual(args[3]['inputs']['checker_cycles'], '10')
+        self.assertEqual(args[3]['inputs']['checker_cycles'], '1')
         self.assertTrue(args[3]['inputs']['automatic_topup'])
 
     def test_settings_disable_when_all_categories_off(self):
         config = {'priceChecker': {'enabled': True, 'cycles': 10, 'maxActiveCheckers': 5,
                                   'categories': dict.fromkeys(('ETF','Stock','Fund'), False)}}
         with patch('builtins.open', unittest.mock.mock_open(read_data=json.dumps(config))):
-            self.assertEqual(queue.settings(), (False, 10, 5, 10))
+            self.assertEqual(queue.settings(), (False, 1, 5, 10))
 
     def test_settings_category_selection_and_custom_limit(self):
         config = {'priceChecker': {'enabled': True, 'cycles': 7, 'maxActiveCheckers': 3, 'refillThreshold': 2, 'topUpJobs': 7,
                                   'categories': {'ETF':True,'Stock':False,'Fund':False}}}
         with patch('builtins.open', unittest.mock.mock_open(read_data=json.dumps(config))):
-            self.assertEqual(queue.settings(), (True, 7, 2, 7))
+            self.assertEqual(queue.settings(), (True, 1, 2, 7))
 
     def test_five_remaining_adds_ten_then_fifteen_adds_none(self):
         calls, _ = self.execute(count=5)
@@ -146,7 +135,10 @@ class QueueTests(unittest.TestCase):
         self.assertNotIn('Top up the active checker queue', worker)
         self.assertNotIn('Hand off to the next checker', worker)
         self.assertNotIn('QUEUE_MODE: watchdog', worker)
-        self.assertLess(worker.index('python scripts/copy_market_data.py'), worker.index('sleep "$sleep_seconds"'))
+        self.assertIn('group: stkref-price-checker', worker)
+        self.assertIn('queue: max', worker)
+        self.assertIn('python scripts/checker_once.py', worker)
+        self.assertNotIn('seq 1', worker)
 
 
 if __name__ == '__main__':

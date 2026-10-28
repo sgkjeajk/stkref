@@ -33,7 +33,7 @@ def settings():
     enabled = checker.get("enabled", True) and any(
         categories.get(key, True) for key in ("ETF", "Stock", "Fund")
     )
-    cycles = max(1, int(checker.get("cycles", 1)))
+    cycles = 1  # Each queued program performs one check; never a repeated-cycle batch.
     threshold = int(checker.get("refillThreshold", 5))
     batch = int(checker.get("topUpJobs", 10))
     if threshold < 0 or batch < 1:
@@ -50,17 +50,13 @@ def active_runs(repo, workflow, token):
         while True:
             batch = gh("GET", f"{base}?status={status}&per_page=100&page={page}", token).get("workflow_runs", [])
             for run in batch:
-                runs[run["id"]] = run
+                # Do not count obsolete parallel-loop workflows during migration.
+                if run.get("display_title", "").startswith("STKREF single-check "):
+                    runs[run["id"]] = run
             if len(batch) < 100:
                 break
             page += 1
     return runs
-
-
-def admitted(runs, current_id, limit):
-    # Preserve the oldest slots. An excess newcomer must not reject every worker.
-    ids = sorted(set(runs) | {int(current_id)})
-    return int(current_id) in ids[:limit]
 
 
 def dispatch(repo, workflow, cycles, token, request_id):
@@ -69,7 +65,7 @@ def dispatch(repo, workflow, cycles, token, request_id):
         "ref": "main",
         "inputs": {
             "refresh_ath": False,
-            "checker_cycles": str(cycles),
+            "checker_cycles": "1",
             "force_price_check": False,
             "automatic_topup": True,
             "request_id": request_id,
@@ -83,18 +79,17 @@ def main():
     workflow = os.environ.get("WORKFLOW_FILE", "task.yml")
     token = os.environ["GH_TOKEN"]
     enabled, saved_cycles, threshold, batch = settings()
-    limit = threshold + batch
     runs = active_runs(repo, workflow, token)
     count = len(runs)
-    print(f"Active STKREF checker runs: {count}; refill at or below: {threshold}; add: {batch}; admission ceiling: {limit}")
+    print(f"Active STKREF checker runs: {count}; refill at or below: {threshold}; add: {batch}")
     for run in sorted(runs.values(), key=lambda item: item.get("created_at", "")):
         print(f"- {run['id']} {run['status']} {run.get('event')} {run.get('html_url')}")
 
     if mode == "guard":
         force = os.environ.get("FORCE_PRICE_CHECK", "false").lower() == "true"
         history = os.environ.get("REFRESH_ATH", "false").lower() == "true"
-        allowed = (enabled or force or history) and admitted(
-            runs, int(os.environ["GITHUB_RUN_ID"]), limit)
+        # Legacy workflows must stop; the new workflow serializes at workflow level.
+        allowed = False
         print(f"Checker admission: {allowed}")
         with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
             output.write("allowed=" + str(allowed).lower() + "\n")
@@ -113,7 +108,7 @@ def main():
     for slot in range(missing):
         request_id = mode + "-" + dt.datetime.now(dt.timezone.utc).strftime("%Y%m%d%H%M%S%f")
         dispatch(repo, workflow, saved_cycles, token, request_id)
-        print(f"Dispatched {saved_cycles}-cycle checker {slot + 1} of {missing}: {request_id}")
+        print(f"Queued single-check program {slot + 1} of {missing}: {request_id}")
     if not missing:
         print("Active count is above the refill threshold; no jobs added.")
 
