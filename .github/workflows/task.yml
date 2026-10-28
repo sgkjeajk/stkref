@@ -127,17 +127,33 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           for attempt in $(seq 1 "$run_count"); do
             echo "STKREF price checker cycle $attempt of $run_count"
-            python scripts/github_market_update.py
-            git fetch origin main
-            if [ "$(git rev-parse HEAD:data/stock-tickers.json)" != "$(git rev-parse origin/main:data/stock-tickers.json)" ]; then
-              echo 'Checker settings changed during this run; stop and let the next run use the new settings.'
-              exit 0
-            fi
-            git add -A -- market-data.json data/stock-monitor.json
-            if ! git diff --cached --quiet; then
+            published=false
+            for publish_attempt in 1 2 3; do
+              # Each cycle must read the latest snapshot, not the checkout from hours ago.
+              git fetch origin main
+              if [ "$(git rev-parse HEAD:data/stock-tickers.json)" != "$(git rev-parse origin/main:data/stock-tickers.json)" ]; then
+                echo 'Checker settings changed; stop and let the next run use them.'
+                exit 0
+              fi
+              git reset --hard origin/main
+              python scripts/github_market_update.py
+              git add -A -- market-data.json data/stock-monitor.json
+              if git diff --cached --quiet; then
+                echo 'No snapshot changes to publish.'
+                break
+              fi
               git commit -m 'Update refreshed market data'
-              git pull --rebase origin main
-              git push origin HEAD:main
+              if git push origin HEAD:main; then
+                published=true
+                break
+              fi
+              echo "Another writer advanced main; regenerate from its latest snapshot (attempt $publish_attempt)."
+              if [ "$publish_attempt" -eq 3 ]; then
+                echo '::error::Could not publish snapshot after three attempts.'
+                exit 1
+              fi
+            done
+            if [ "$published" = true ]; then
               if [ -n "${EVERYDAYCOMPASS_TOKEN:-}" ]; then
                 curl --fail --silent --show-error --retry 3 \
                   -X POST 'https://api.github.com/repos/myai118/EverydayCompass/dispatches' \
