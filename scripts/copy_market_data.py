@@ -97,6 +97,8 @@ def main():
         return 0
     except urllib.error.HTTPError as error:
         # Do not print response bodies or request headers containing credentials.
+        print('Rejected endpoint: ' + error.url.split('?')[0])
+        print('Required permissions: ' + error.headers.get('X-Accepted-GitHub-Permissions', 'not supplied'))
         print('::warning::Direct market copy failed: GitHub HTTP ' + str(error.code) +
               '. Source refresh is saved; scheduled destination sync remains the fallback.')
     except Exception as error:
