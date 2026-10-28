@@ -15,7 +15,10 @@ on:
     paths:
       - '.github/workflows/checker-watchdog.yml'
       - 'scripts/checker_queue.py'
-      - 'tests/test_checker_queue.py'
+      - 'scripts/checker_once.py'
+      - 'scripts/github_market_update.py'
+      - 'scripts/copy_market_data.py'
+      - 'tests/test_*.py'
 permissions:
   contents: read
   actions: write
