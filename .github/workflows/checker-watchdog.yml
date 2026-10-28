@@ -1,9 +1,9 @@
 name: Checker Watchdog
 on:
-  # Replenish after success, failure, cancellation or a settings-change exit.
+  # Check the saved top-up rule on every start and every outcome.
   workflow_run:
     workflows: [Task]
-    types: [completed]
+    types: [in_progress, completed]
     branches: [main]
   schedule:
     # Independent recovery when a completion event or scheduled launch is delayed.
@@ -42,6 +42,8 @@ jobs:
       - name: Replenish checker slots from current settings
         env:
           QUEUE_MODE: watchdog
+          CHECKER_EVENT: ${{ github.event.action || github.event_name }}
+          CHECKER_RUN_ID: ${{ github.event.workflow_run.id || '' }}
           REPO: ${{ github.repository }}
           WORKFLOW_FILE: task.yml
           GH_TOKEN: ${{ github.token }}

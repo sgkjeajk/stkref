@@ -78,6 +78,8 @@ def main():
     repo = os.environ["REPO"]
     workflow = os.environ.get("WORKFLOW_FILE", "task.yml")
     token = os.environ["GH_TOKEN"]
+    print("Queue check event:", os.environ.get("CHECKER_EVENT", "manual"),
+          "checker:", os.environ.get("CHECKER_RUN_ID", "unspecified"))
     enabled, saved_cycles, threshold, batch = settings()
     runs = active_runs(repo, workflow, token)
     count = len(runs)

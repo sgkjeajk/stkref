@@ -11,7 +11,7 @@ The source of truth is `data/stock-tickers.json` in `sgkjeajk/stkref`.
 
 The Task workflow uses workflow-level `concurrency`, `cancel-in-progress: false` and `queue: max`. Other single-check programs remain pending rather than performing parallel repeated loops. Every new head program rereads the latest saved interval, settings and snapshot while waiting. It checks the due time again after publication conflicts. GitHub startup delays can make a check later than its due time.
 
-The completion controller reads current settings after completed Task workflows, including failures, and has an independent five-minute recovery schedule. It serializes replenishment. At 0 remaining it adds 10; at 5 it adds 10 (total 15); at 6 it adds none. It counts queued, pending, waiting, requested and in-progress single-check runs, with pagination and deduplication. Obsolete parallel-loop runs are excluded from this count. Their old guard and provider entry point exit without retrieving prices so they cannot interfere during migration.
+The queue controller reads current settings on every Task start and every completion, including failures and cancellations, and has an independent five-minute recovery schedule. It serializes replenishment. At 0 remaining it adds 10; at 5 it adds 10 (total 15); at 6 it adds none. It counts queued, pending, waiting, requested and in-progress single-check runs, with pagination and deduplication. Obsolete parallel-loop runs are excluded from this count. Their old guard and provider entry point exit without retrieving prices so they cannot interfere during migration.
 
 ## Backup examined before implementation
 
