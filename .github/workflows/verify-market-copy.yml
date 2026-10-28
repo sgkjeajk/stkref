@@ -1,0 +1,26 @@
+name: Verify direct market copy
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/verify-market-copy.yml'
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Test copy protections
+        run: python -m unittest discover -s tests -p 'test_copy_market_data.py' -v
+      - name: Copy current completed check directly
+        env:
+          EVERYDAYCOMPASS_TOKEN: ${{ secrets.EVERYDAYCOMPASS_TOKEN }}
+        run: python scripts/copy_market_data.py
