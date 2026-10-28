@@ -40,10 +40,24 @@ def settings():
 
 def active_runs(repo, workflow, token):
     base = f"https://api.github.com/repos/{repo}/actions/workflows/{workflow}/runs"
-    runs = []
-    for status in ("queued", "in_progress"):
-        runs.extend(gh("GET", f"{base}?status={status}&per_page=100", token).get("workflow_runs", []))
-    return {run["id"]: run for run in runs}
+    # Include pending admission states, and paginate so excess runs stay visible.
+    runs = {}
+    for status in ("queued", "in_progress", "waiting", "pending", "requested"):
+        page = 1
+        while True:
+            batch = gh("GET", f"{base}?status={status}&per_page=100&page={page}", token).get("workflow_runs", [])
+            for run in batch:
+                runs[run["id"]] = run
+            if len(batch) < 100:
+                break
+            page += 1
+    return runs
+
+
+def admitted(runs, current_id, limit):
+    # Preserve the oldest slots. An excess newcomer must not reject every worker.
+    ids = sorted(set(runs) | {int(current_id)})
+    return int(current_id) in ids[:limit]
 
 
 def dispatch(repo, workflow, cycles, token, request_id):
@@ -75,39 +89,29 @@ def main():
     if mode == "guard":
         force = os.environ.get("FORCE_PRICE_CHECK", "false").lower() == "true"
         history = os.environ.get("REFRESH_ATH", "false").lower() == "true"
-        if (not enabled and not force and not history) or count > limit:
-            print("Checker disabled or active-run limit exceeded; skip this refresh.")
-            with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
-                output.write("allowed=false\n")
-        else:
-            with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
-                output.write("allowed=true\n")
+        allowed = (enabled or force or history) and admitted(
+            runs, int(os.environ["GITHUB_RUN_ID"]), limit)
+        print(f"Checker admission: {allowed}")
+        with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
+            output.write("allowed=" + str(allowed).lower() + "\n")
         return
 
+    if mode not in ("queue", "watchdog"):
+        raise ValueError("Unknown queue mode: " + mode)
     if not enabled:
         print("Price checker is disabled or all categories are off; no run dispatched.")
         return
 
-    if count >= limit:
+    # Called by the serialized controller only, after a worker has fully finished.
+    # Reserve each successful dispatch locally: do not rely on API visibility
+    # of a just-dispatched run to calculate the remaining deficit.
+    missing = max(0, limit - count)
+    for slot in range(missing):
+        request_id = mode + "-" + dt.datetime.now(dt.timezone.utc).strftime("%Y%m%d%H%M%S%f")
+        dispatch(repo, workflow, saved_cycles, token, request_id)
+        print(f"Dispatched {saved_cycles}-cycle checker {slot + 1} of {missing}: {request_id}")
+    if not missing:
         print("The configured active-run limit is already reached; no run dispatched.")
-        return
-
-    cycles = saved_cycles
-    if mode == "queue":
-        refresh_ath = os.environ.get("REFRESH_ATH", "false").lower() == "true"
-        if refresh_ath:
-            print("ATH refresh requested; queue top-up is not needed.")
-            return
-        try:
-            cycles = max(1, int(os.environ.get("CHECKER_CYCLES", "") or saved_cycles))
-        except ValueError:
-            cycles = saved_cycles
-        if cycles <= 1:
-            print("Cycle count is 1; no repeated-cycle top-up is needed.")
-            return
-    request_id = mode + "-" + dt.datetime.now(dt.timezone.utc).strftime("%Y%m%d%H%M%S%f")
-    dispatch(repo, workflow, cycles, token, request_id)
-    print(f"Dispatched one {cycles}-cycle checker run: {request_id}")
 
 
 if __name__ == "__main__":

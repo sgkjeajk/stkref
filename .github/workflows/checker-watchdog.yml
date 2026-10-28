@@ -1,18 +1,30 @@
 name: Checker Watchdog
 on:
+  # Replenish after success, failure, cancellation or a settings-change exit.
+  workflow_run:
+    workflows: [Task]
+    types: [completed]
+    branches: [main]
   schedule:
-    # Singapore weekdays: run every three hours (UTC offsets for 00:43–21:43 SGT)
-    - cron: '43 1,4,7,10,13 * * 1-5'
-    - cron: '43 16,19,22 * * 0-4'
+    # Independent recovery when a completion event or scheduled launch is delayed.
+    - cron: '1/5 16-23 * * 0-4'
+    - cron: '1/5 0-15 * * 1-5'
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/checker-watchdog.yml'
+      - 'scripts/checker_queue.py'
+      - 'tests/test_checker_queue.py'
 permissions:
   contents: read
   actions: write
 jobs:
   dispatch:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     concurrency:
-      group: stkref-checker-queue
+      group: stkref-replenishment
       cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
@@ -21,7 +33,9 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Start a checker when the active queue is below its configured limit
+      - name: Test replenishment and copy protections
+        run: python -m unittest discover -s tests -v
+      - name: Replenish checker slots from current settings
         env:
           QUEUE_MODE: watchdog
           REPO: ${{ github.repository }}

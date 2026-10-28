@@ -45,6 +45,7 @@ on:
       - 'scripts/copy_market_data.py'
       - 'tests/test_copy_market_data.py'
       - 'tests/test_market_service.py'
+      - 'tests/test_checker_queue.py'
       - '.github/workflows/task.yml'
       - '.github/workflows/checker-watchdog.yml'
 permissions:
@@ -53,9 +54,6 @@ permissions:
 jobs:
   queue:
     runs-on: ubuntu-latest
-    concurrency:
-      group: stkref-checker-queue
-      cancel-in-progress: false
     outputs:
       allowed: ${{ steps.guard.outputs.allowed }}
     steps:
@@ -65,16 +63,6 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Top up the active checker queue
-        if: (github.event_name == 'schedule' && github.event.schedule != '23 0,6,12 * * 1-5') || inputs.automatic_topup == true
-        env:
-          QUEUE_MODE: queue
-          REPO: ${{ github.repository }}
-          WORKFLOW_FILE: task.yml
-          GH_TOKEN: ${{ github.token }}
-          CHECKER_CYCLES: ${{ inputs.checker_cycles }}
-          REFRESH_ATH: ${{ inputs.refresh_ath || false }}
-        run: python scripts/checker_queue.py
       - name: Enforce the configured checker limit
         id: guard
         env:
@@ -101,8 +89,7 @@ jobs:
           python-version: '3.12'
       - name: Check
         run: |
-          python -m unittest discover -s tests -p 'test_market_service.py' -v
-          python -m unittest discover -s tests -p 'test_copy_market_data.py' -v
+          python -m unittest discover -s tests -v
       - name: Retrieve prices and history
         env:
           REFRESH_ATH: ${{ (github.event_name == 'schedule' && github.event.schedule == '23 0,6,12 * * 1-5') || inputs.refresh_ath || false }}
@@ -166,15 +153,3 @@ jobs:
               sleep "$sleep_seconds"
             fi
           done
-      - name: Hand off to the next checker
-        if: success()
-        env:
-          QUEUE_MODE: watchdog
-          REPO: ${{ github.repository }}
-          WORKFLOW_FILE: task.yml
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          # Read current settings before requesting the next bounded checker run.
-          git fetch origin main
-          git checkout origin/main -- data/stock-tickers.json scripts/checker_queue.py
-          python scripts/checker_queue.py
