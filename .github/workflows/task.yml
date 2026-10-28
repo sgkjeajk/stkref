@@ -63,6 +63,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      # Excess arrivals exit here; their completion still wakes the controller.
       - name: Enforce the configured checker limit
         id: guard
         env:
