@@ -88,7 +88,7 @@ if __name__=='__main__':
             write_check_heartbeat(config,'skipped_no_price_checker_categories',request_id,history,force=True)
             print('Skipped quote scraping: no price checker categories are enabled.')
             raise SystemExit(0)
-        if os.environ.get('TRIGGER_EVENT')=='schedule' and not history:
+        if os.environ.get('TRIGGER_EVENT')=='schedule' and not history and not manual:
             at=dt.datetime.now(dt.timezone.utc)
             eligible={x['ticker'] for x in config['instruments'] if x['enabled'] and categories.get(x['type'],True) and market_open(x['ticker'],at)}
             if not eligible:

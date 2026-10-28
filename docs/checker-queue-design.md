@@ -24,3 +24,7 @@ The completion controller reads current settings after completed Task workflows,
 The backup establishes that retrieval was serial. This implementation follows the clarified user requirement for ten separate queued single-check programs rather than restoring the backup's repeated-loop behavior.
 
 GitHub's larger queue documentation: https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-workflow-concurrency#example-queueing-multiple-pending-runs
+
+## Immediate successor after delivery failure
+
+Before source publication, the program writes a pending delivery record in `data/checker-delivery.json` alongside the price snapshot in the same commit. Only after both destination JSON files have been checked/copied successfully does it acknowledge completed delivery. A failed copy leaves the pending marker and fails the workflow. The next waiting single-check program sees the pending marker for the same source snapshot, bypasses the normal interval, and forces a new retrieval instead of skipping fresh prices. It then attempts delivery of both files. No extra parallel price-checking process is launched; the next queued program takes over as soon as GitHub starts it. A completed delivery restores the saved interval. Disabling the checker still stops automatic retrieval.

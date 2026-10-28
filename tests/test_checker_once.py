@@ -5,6 +5,7 @@ from pathlib import Path
 import runpy
 import subprocess
 import sys
+import tempfile
 import unittest
 from unittest.mock import Mock, patch
 
@@ -71,7 +72,10 @@ class SingleCheckTests(unittest.TestCase):
     def run_program(self, returncodes):
         commands=[]
         with patch.object(once,'wait_until_due',return_value=True), \
-             patch.object(once,'command',side_effect=lambda *args:commands.append(args)), \
+             patch.object(once,'read_state',return_value=(CONFIG,snapshot(360))), \
+             patch.object(once,'record_delivery',return_value='stamp'), \
+             patch.object(once,'mark_delivered'), \
+             patch.object(once,'command',side_effect=lambda *args,**kwargs:commands.append(args)), \
              patch.object(once.subprocess,'run',side_effect=[Mock(returncode=x) for x in returncodes]):
             once.main()
         return commands
@@ -95,16 +99,22 @@ class SingleCheckTests(unittest.TestCase):
     def test_three_failed_publications_fail_without_copying_unpublished_data(self):
         commands=[]
         with patch.object(once,'wait_until_due',return_value=True), \
-             patch.object(once,'command',side_effect=lambda *args:commands.append(args)), \
+             patch.object(once,'read_state',return_value=(CONFIG,snapshot(360))), \
+             patch.object(once,'record_delivery',return_value='stamp'), \
+             patch.object(once,'mark_delivered'), \
+             patch.object(once,'command',side_effect=lambda *args,**kwargs:commands.append(args)), \
              patch.object(once.subprocess,'run',return_value=Mock(returncode=1)):
             with self.assertRaises(RuntimeError):once.main()
         self.assertNotIn((sys.executable,'scripts/copy_market_data.py'),commands)
 
     def test_copy_failure_is_visible_as_job_failure(self):
-        def command(*args):
+        def command(*args,**kwargs):
             if args == (sys.executable,'scripts/copy_market_data.py'):
                 raise subprocess.CalledProcessError(1,args)
         with patch.object(once,'wait_until_due',return_value=True), \
+             patch.object(once,'read_state',return_value=(CONFIG,snapshot(360))), \
+             patch.object(once,'record_delivery',return_value='stamp'), \
+             patch.object(once,'mark_delivered'), \
              patch.object(once,'command',side_effect=command), \
              patch.object(once.subprocess,'run',side_effect=[Mock(returncode=1),Mock(returncode=0)]):
             with self.assertRaises(subprocess.CalledProcessError):once.main()
@@ -119,6 +129,74 @@ class SingleCheckTests(unittest.TestCase):
         self.assertTrue(update.prices_are_fresh(CONFIG,snapshot(359),AT))
         self.assertFalse(update.prices_are_fresh(CONFIG,snapshot(360),AT))
         self.assertFalse(update.recent_check(snapshot(360),AT,update.configured_interval_seconds(CONFIG)))
+
+    def test_failed_copy_bypasses_six_minute_wait_for_next_program(self):
+        data = {**snapshot(1), '_copy_pending':True}
+        self.assertEqual(once.seconds_to_wait(CONFIG,data,AT),0)
+
+    def test_pending_marker_is_read_only_for_its_matching_source_snapshot(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);(root/'data').mkdir()
+            (root/'data/stock-tickers.json').write_text(json.dumps(CONFIG))
+            data=snapshot(1);(root/'market-data.json').write_text(json.dumps(data))
+            delivery={'status':'pending','source_market_generated_at':data['generated_at']}
+            path=root/'data/checker-delivery.json';path.write_text(json.dumps(delivery))
+            with patch.object(once,'ROOT',root):
+                self.assertTrue(once.read_state()[1]['_copy_pending'])
+                delivery['status']='completed';path.write_text(json.dumps(delivery))
+                self.assertFalse(once.read_state()[1]['_copy_pending'])
+                delivery.update(status='pending',source_market_generated_at='older')
+                path.write_text(json.dumps(delivery))
+                self.assertFalse(once.read_state()[1]['_copy_pending'])
+
+    def test_failed_copy_leaves_persisted_pending_marker_and_no_acknowledgement(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);(root/'data').mkdir()
+            (root/'data/stock-tickers.json').write_text(json.dumps(CONFIG))
+            (root/'market-data.json').write_text(json.dumps(snapshot(360)))
+            def command(*args,**kwargs):
+                if args==(sys.executable,'scripts/copy_market_data.py'):
+                    raise subprocess.CalledProcessError(1,args)
+            with patch.object(once,'ROOT',root), \
+                 patch.object(once,'wait_until_due',return_value=True), \
+                 patch.object(once,'command',side_effect=command), \
+                 patch.object(once,'mark_delivered') as acknowledge, \
+                 patch.object(once.subprocess,'run',side_effect=[Mock(returncode=1),Mock(returncode=0)]):
+                with self.assertRaises(subprocess.CalledProcessError):once.main()
+                self.assertTrue(once.read_state()[1]['_copy_pending'])
+                acknowledge.assert_not_called()
+
+    def test_successful_delivery_clears_pending_marker_after_copy(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);(root/'data').mkdir()
+            (root/'data/stock-tickers.json').write_text(json.dumps(CONFIG))
+            (root/'market-data.json').write_text(json.dumps(snapshot(1)))
+            with patch.object(once,'ROOT',root),patch.object(once,'sync'), \
+                 patch.object(once,'command'), \
+                 patch.object(once.subprocess,'run',side_effect=[Mock(returncode=1),Mock(returncode=0)]):
+                stamp=once.record_delivery('pending')
+                self.assertTrue(once.read_state()[1]['_copy_pending'])
+                once.mark_delivered(stamp)
+                self.assertFalse(once.read_state()[1]['_copy_pending'])
+                self.assertEqual(once.seconds_to_wait(CONFIG,once.read_state()[1],AT),359)
+
+    def test_acknowledgement_cannot_clear_a_different_newer_snapshot(self):
+        with patch.object(once,'sync'),patch.object(once,'read_state',return_value=(CONFIG,snapshot(1))):
+            with self.assertRaises(RuntimeError):once.mark_delivered('different')
+
+    def test_pending_delivery_forces_new_retrieval_instead_of_fresh_price_skip(self):
+        captured=[]
+        def command(*args,**kwargs):
+            if args==(sys.executable,'scripts/github_market_update.py'):
+                captured.append(kwargs['env']['FORCE_PRICE_CHECK'])
+        with patch.object(once,'wait_until_due',return_value=True), \
+             patch.object(once,'read_state',return_value=(CONFIG,{**snapshot(1),'_copy_pending':True})), \
+             patch.object(once,'record_delivery',return_value='stamp'), \
+             patch.object(once,'mark_delivered'), \
+             patch.object(once,'command',side_effect=command), \
+             patch.object(once.subprocess,'run',side_effect=[Mock(returncode=1),Mock(returncode=0)]):
+            once.main()
+        self.assertEqual(captured,['true'])
 
     def test_legacy_loop_program_exits_before_provider_access(self):
         with patch.dict(os.environ,{'GITHUB_ACTIONS':'true','CHECKER_SINGLE_PASS':'false'}), \

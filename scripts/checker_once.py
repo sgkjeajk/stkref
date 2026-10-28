@@ -17,6 +17,8 @@ def enabled(config):
 
 
 def seconds_to_wait(config, snapshot, at=None):
+    if snapshot.get('_copy_pending'):
+        return 0  # A failed delivery advances the next queued program immediately.
     interval = int(config.get('priceChecker', {}).get('intervalMinutes', 6)) * 60
     if interval <= 0:
         raise ValueError('Checker interval must be positive')
@@ -34,8 +36,8 @@ def seconds_to_wait(config, snapshot, at=None):
     return min(interval, max(0, interval - (at - completed).total_seconds()))
 
 
-def command(*args):
-    subprocess.run(args, cwd=ROOT, check=True)
+def command(*args, **kwargs):
+    subprocess.run(args, cwd=ROOT, check=True, **kwargs)
 
 
 def sync():
@@ -49,6 +51,13 @@ def read_state():
         snapshot = json.loads((ROOT / 'market-data.json').read_text(encoding='utf-8'))
     except (OSError, ValueError):
         snapshot = {}
+    try:
+        delivery = json.loads((ROOT / 'data/checker-delivery.json').read_text(encoding='utf-8'))
+    except (OSError, ValueError):
+        delivery = {}
+    stamp = snapshot.get('last_check_completed_at') or snapshot.get('generated_at')
+    snapshot['_copy_pending'] = (delivery.get('status') == 'pending'
+                                 and delivery.get('source_market_generated_at') == stamp)
     return config, snapshot
 
 
@@ -66,6 +75,37 @@ def wait_until_due(sync_state=sync, read=read_state, pause=time.sleep, clock=Non
         pause(min(30, delay))
 
 
+def record_delivery(status):
+    data = json.loads((ROOT / 'market-data.json').read_text(encoding='utf-8'))
+    stamp = data.get('last_check_completed_at') or data['generated_at']
+    state = {'source_market_generated_at': stamp, 'status': status}
+    path = ROOT / 'data/checker-delivery.json'
+    path.write_text(json.dumps(state, indent=2) + '\n', encoding='utf-8')
+    return stamp
+
+
+def mark_delivered(expected):
+    # Clear the pending marker only after BOTH destination files were checked
+    # and copied successfully. Keep the marker on any delivery failure.
+    for attempt in range(3):
+        sync()
+        _, data = read_state()
+        stamp = data.get('last_check_completed_at') or data.get('generated_at')
+        if stamp != expected:
+            raise RuntimeError('Source snapshot changed before delivery acknowledgement')
+        record_delivery('completed')
+        command('git', 'add', '--', 'data/checker-delivery.json')
+        changed = subprocess.run(['git','diff','--cached','--quiet'],cwd=ROOT).returncode
+        if changed == 0:
+            return
+        if changed != 1:
+            raise RuntimeError('Could not inspect delivery acknowledgement')
+        command('git','commit','-m','Acknowledge completed direct market and dividend copy')
+        if subprocess.run(['git','push','origin','HEAD:main'],cwd=ROOT).returncode == 0:
+            return
+    raise RuntimeError('Could not acknowledge direct delivery after three attempts')
+
+
 def main():
     forced = (os.environ.get('FORCE_PRICE_CHECK', 'false').lower() == 'true'
               or os.environ.get('REFRESH_ATH', 'false').lower() == 'true')
@@ -79,8 +119,15 @@ def main():
         if attempt:
             if not wait_until_due(forced=forced):
                 return 0
-        command(sys.executable, 'scripts/github_market_update.py')
-        command('git', 'add', '--', 'market-data.json', 'data/stock-monitor.json')
+        _, previous = read_state()
+        retry_delivery = previous.get('_copy_pending', False)
+        env = dict(os.environ)
+        if retry_delivery:
+            env['FORCE_PRICE_CHECK'] = 'true'
+            print('Prior direct copy failed; new checker runs immediately without the normal interval.', flush=True)
+        command(sys.executable, 'scripts/github_market_update.py', env=env)
+        completed_stamp = record_delivery('pending')
+        command('git', 'add', '--', 'market-data.json', 'data/stock-monitor.json', 'data/checker-delivery.json')
         changed = subprocess.run(['git', 'diff', '--cached', '--quiet'], cwd=ROOT).returncode
         if changed == 0:
             break
@@ -96,6 +143,7 @@ def main():
     # Completion includes direct delivery. A failed copy makes this job fail
     # visibly; the next queued program retries delivery after its own check.
     command(sys.executable, 'scripts/copy_market_data.py')
+    mark_delivered(completed_stamp)
     print('One price check and direct copy completed; this program now exits.', flush=True)
     return 0
 
