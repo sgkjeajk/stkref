@@ -26,7 +26,9 @@ class Destination:
         if path == '/git/ref/heads/main':
             return {'object': {'sha': 'head'}}
         if path.startswith('/contents/'):
-            data = self.current if 'market-data.json' in path else {'source_dividend_generated_at': 'keep-me'}
+            data = (self.current if 'market-data.json' in path else
+                    {'generated_at': '2026-10-28T10:00:00Z'} if 'dividend-data.json' in path else
+                    {'source_dividend_generated_at': 'keep-me'})
             return {'content': base64.b64encode(json.dumps(data).encode()).decode()}
         if path == '/git/commits/head':
             return {'tree': {'sha': 'base-tree'}}
@@ -73,6 +75,16 @@ class CopyTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             copy_snapshot(data, remote)
         self.assertEqual(remote.calls, [])
+
+    def test_dividends_copy_even_when_market_is_current(self):
+        remote = Destination(snapshot(14))
+        dividends = {'generated_at': '2026-10-28T11:00:00Z'}
+        copy_snapshot(snapshot(13), remote, dividends=dividends)
+        paths = [entry['path'] for entry in remote.entries]
+        self.assertNotIn('market-data.json', paths)
+        self.assertIn('dividend-data.json', paths)
+        status = json.loads(remote.entries[0]['content'])
+        self.assertEqual(status['source_dividend_generated_at'], dividends['generated_at'])
 
     def test_auth_failure_is_not_retried(self):
         calls = []
