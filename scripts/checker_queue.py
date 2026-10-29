@@ -33,10 +33,10 @@ def settings():
     enabled = checker.get("enabled", True) and any(
         categories.get(key, True) for key in ("ETF", "Stock", "Fund")
     )
-    cycles = 1  # Each queued program performs one check; never a repeated-cycle batch.
+    cycles = int(checker.get("cycles", 10))
     threshold = int(checker.get("refillThreshold", 5))
     batch = int(checker.get("topUpJobs", 10))
-    if threshold < 0 or batch < 1:
+    if cycles < 1 or threshold < 0 or batch < 1:
         raise ValueError("Refill threshold must be non-negative and top-up price checker programs positive")
     return enabled, cycles, threshold, batch
 
@@ -51,7 +51,7 @@ def active_runs(repo, workflow, token):
             batch = gh("GET", f"{base}?status={status}&per_page=100&page={page}", token).get("workflow_runs", [])
             for run in batch:
                 # Do not count obsolete parallel-loop workflows during migration.
-                if run.get("display_title", "").startswith("STKREF single-check "):
+                if run.get("display_title", "").startswith(("STKREF single-check ", "STKREF price checker ")):
                     runs[run["id"]] = run
             if len(batch) < 100:
                 break
@@ -65,7 +65,7 @@ def dispatch(repo, workflow, cycles, token, request_id):
         "ref": "main",
         "inputs": {
             "refresh_ath": False,
-            "checker_cycles": "1",
+            "checker_cycles": str(cycles),
             "force_price_check": False,
             "automatic_topup": True,
             "request_id": request_id,
@@ -115,7 +115,7 @@ def main():
     for slot in range(missing):
         request_id = mode + "-" + dt.datetime.now(dt.timezone.utc).strftime("%Y%m%d%H%M%S%f")
         dispatch(repo, workflow, saved_cycles, token, request_id)
-        print(f"Queued single-check program {slot + 1} of {missing}: {request_id}")
+        print(f"Queued price checker program {slot + 1} of {missing}: {request_id}")
     if not missing:
         if mode in ("bootstrap", "watchdog"):
             print("A price checker program already exists; bootstrap added none.")

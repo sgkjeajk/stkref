@@ -1,4 +1,4 @@
-"""Run one serialized price check, at the interval saved in STKREF settings."""
+"""Run repeated serialized checks, delivering both files after every check."""
 import datetime as dt
 import json
 import os
@@ -71,7 +71,7 @@ def wait_until_due(sync_state=sync, read=read_state, pause=time.sleep, clock=Non
         delay = seconds_to_wait(config, data, clock() if clock else None)
         if delay <= 0:
             return True
-        print(f'One-check program waiting {delay:.1f}s for the saved interval.', flush=True)
+        print(f'Price checker program waiting {delay:.1f}s for the saved interval.', flush=True)
         pause(min(30, delay))
 
 
@@ -106,7 +106,7 @@ def mark_delivered(expected):
     raise RuntimeError('Could not acknowledge direct delivery after three attempts')
 
 
-def main():
+def check_once():
     forced = (os.environ.get('FORCE_PRICE_CHECK', 'false').lower() == 'true'
               or os.environ.get('REFRESH_ATH', 'false').lower() == 'true')
     if not wait_until_due(forced=forced):
@@ -144,7 +144,50 @@ def main():
     # visibly; the next queued program retries delivery after its own check.
     command(sys.executable, 'scripts/copy_market_data.py')
     mark_delivered(completed_stamp)
-    print('One price check and direct copy completed; this program now exits.', flush=True)
+    print('Price check and both direct file copies completed.', flush=True)
+    return 0
+
+
+def main():
+    # Read the saved count; old queued workflow inputs cannot override settings.
+    sync()
+    config, _ = read_state()
+    cycles = int(config.get('priceChecker', {}).get('cycles', 10))
+    if cycles < 1:
+        raise ValueError('Checks per program must be positive')
+    original_env = dict(os.environ)
+    try:
+        for cycle in range(cycles):
+            # Re-read enable/category/count settings before each check. The
+            # interval waiter also re-reads settings while it is waiting.
+            sync()
+            config, _ = read_state()
+            limit = int(config.get('priceChecker', {}).get('cycles', 10))
+            forced = cycle == 0 and any(original_env.get(key, 'false').lower() == 'true'
+                                       for key in ('FORCE_PRICE_CHECK', 'REFRESH_ATH'))
+            if cycle >= limit or (not enabled(config) and not forced):
+                break
+            if cycle:
+                os.environ['REFRESH_ATH'] = 'false'
+                os.environ['FORCE_PRICE_CHECK'] = 'false'
+                os.environ['TRIGGER_EVENT'] = 'schedule'
+            print(f'Price checker: check {cycle + 1} of {min(cycles, limit)}', flush=True)
+            try:
+                # This call publishes a pending marker, copies BOTH files and
+                # acknowledges delivery before another iteration is allowed.
+                check_once()
+            finally:
+                # Runs on retrieval, publication, copy and acknowledgement
+                # failures too. Workflow always-run step is an extra safeguard.
+                env = dict(os.environ, QUEUE_MODE='queue', CHECKER_EVENT='check_finish')
+                command(sys.executable, 'scripts/checker_queue.py', env=env)
+    finally:
+        for key in ('REFRESH_ATH', 'FORCE_PRICE_CHECK', 'TRIGGER_EVENT'):
+            if key in original_env:
+                os.environ[key] = original_env[key]
+            else:
+                os.environ.pop(key, None)
+    print('Price checker program completed.', flush=True)
     return 0
 
 

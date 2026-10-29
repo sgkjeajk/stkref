@@ -23,17 +23,17 @@ class QueueTests(unittest.TestCase):
             environment = {'QUEUE_MODE': mode, 'REPO': 'owner/repo', 'GH_TOKEN': 'test',
                            'GITHUB_RUN_ID': '1', 'GITHUB_OUTPUT': out.name, **env}
             with patch.dict(os.environ, environment, clear=True), \
-                 patch.object(queue, 'settings', return_value=(enabled, 1, threshold, batch)), \
+                 patch.object(queue, 'settings', return_value=(enabled, cycles, threshold, batch)), \
                  patch.object(queue, 'active_runs', return_value=runs(count)), \
                  patch.object(queue, 'dispatch') as dispatch, \
                  contextlib.redirect_stdout(io.StringIO()):
                 queue.main()
                 return dispatch.call_args_list, Path(out.name).read_text()
 
-    def test_empty_pool_queues_ten_single_check_programs(self):
+    def test_empty_pool_queues_ten_repeated_check_programs(self):
         calls, _ = self.execute()
         self.assertEqual(len(calls), 10)
-        self.assertTrue(all(call.args[2] == 1 for call in calls))
+        self.assertTrue(all(call.args[2] == 10 for call in calls))
 
     def test_every_count_zero_through_five_adds_exactly_ten(self):
         for count in range(6):
@@ -96,26 +96,26 @@ class QueueTests(unittest.TestCase):
         with patch.object(queue, 'gh', side_effect=api):
             self.assertEqual(queue.active_runs('owner/repo', 'task.yml', 'test'), {})
 
-    def test_dispatch_enforces_one_check_and_preserves_main_branch(self):
+    def test_dispatch_preserves_saved_cycles_and_main_branch(self):
         with patch.object(queue, 'gh') as api:
             queue.dispatch('owner/repo', 'task.yml', 10, 'test', 'request')
         args = api.call_args.args
         self.assertEqual(args[0], 'POST')
         self.assertEqual(args[3]['ref'], 'main')
-        self.assertEqual(args[3]['inputs']['checker_cycles'], '1')
+        self.assertEqual(args[3]['inputs']['checker_cycles'], '10')
         self.assertTrue(args[3]['inputs']['automatic_topup'])
 
     def test_settings_disable_when_all_categories_off(self):
         config = {'priceChecker': {'enabled': True, 'cycles': 10, 'maxActiveCheckers': 5,
                                   'categories': dict.fromkeys(('ETF','Stock','Fund'), False)}}
         with patch('builtins.open', unittest.mock.mock_open(read_data=json.dumps(config))):
-            self.assertEqual(queue.settings(), (False, 1, 5, 10))
+            self.assertEqual(queue.settings(), (False, 10, 5, 10))
 
     def test_settings_category_selection_and_custom_limit(self):
         config = {'priceChecker': {'enabled': True, 'cycles': 7, 'maxActiveCheckers': 3, 'refillThreshold': 2, 'topUpJobs': 7,
                                   'categories': {'ETF':True,'Stock':False,'Fund':False}}}
         with patch('builtins.open', unittest.mock.mock_open(read_data=json.dumps(config))):
-            self.assertEqual(queue.settings(), (True, 1, 2, 7))
+            self.assertEqual(queue.settings(), (True, 7, 2, 7))
 
     def test_five_remaining_adds_ten_then_fifteen_adds_none(self):
         calls, _ = self.execute(count=5)

@@ -1,5 +1,5 @@
 name: Task
-run-name: STKREF single-check ${{ github.run_id }}
+run-name: STKREF price checker ${{ github.run_id }}
 on:
   schedule:
     # Historical-high checks use the same single-worker queue.
@@ -12,9 +12,9 @@ on:
         default: false
         type: boolean
       checker_cycles:
-        description: Legacy input; every program now performs exactly one check
+        description: Compatibility input; checks per program come from saved STKREF settings
         required: false
-        default: '1'
+        default: ''
         type: string
       force_price_check:
         description: Run even if scheduled checking is off
@@ -57,7 +57,7 @@ concurrency:
 jobs:
   update:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 360
     steps:
       - uses: actions/checkout@v4
         with:
@@ -79,8 +79,11 @@ jobs:
           python scripts/checker_queue.py
       - name: Test checker, queue and copy protections
         run: python -m unittest discover -s tests -v
-      - name: Wait for saved interval, check once and copy directly
+      - name: Repeat saved checks and copy both files after each check
         env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          WORKFLOW_FILE: task.yml
           CHECKER_SINGLE_PASS: 'true'
           REFRESH_ATH: ${{ (github.event_name == 'schedule') || inputs.refresh_ath || false }}
           FORCE_PRICE_CHECK: ${{ inputs.force_price_check || false }}

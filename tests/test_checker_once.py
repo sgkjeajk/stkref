@@ -77,7 +77,7 @@ class SingleCheckTests(unittest.TestCase):
              patch.object(once,'mark_delivered'), \
              patch.object(once,'command',side_effect=lambda *args,**kwargs:commands.append(args)), \
              patch.object(once.subprocess,'run',side_effect=[Mock(returncode=x) for x in returncodes]):
-            once.main()
+            once.check_once()
         return commands
 
     def test_one_retrieval_then_publication_then_direct_copy_and_exit(self):
@@ -104,7 +104,7 @@ class SingleCheckTests(unittest.TestCase):
              patch.object(once,'mark_delivered'), \
              patch.object(once,'command',side_effect=lambda *args,**kwargs:commands.append(args)), \
              patch.object(once.subprocess,'run',return_value=Mock(returncode=1)):
-            with self.assertRaises(RuntimeError):once.main()
+            with self.assertRaises(RuntimeError):once.check_once()
         self.assertNotIn((sys.executable,'scripts/copy_market_data.py'),commands)
 
     def test_copy_failure_is_visible_as_job_failure(self):
@@ -117,11 +117,11 @@ class SingleCheckTests(unittest.TestCase):
              patch.object(once,'mark_delivered'), \
              patch.object(once,'command',side_effect=command), \
              patch.object(once.subprocess,'run',side_effect=[Mock(returncode=1),Mock(returncode=0)]):
-            with self.assertRaises(subprocess.CalledProcessError):once.main()
+            with self.assertRaises(subprocess.CalledProcessError):once.check_once()
 
     def test_disabled_program_never_retrieves_or_copies(self):
         with patch.object(once,'wait_until_due',return_value=False),patch.object(once,'command') as command:
-            self.assertEqual(once.main(),0)
+            self.assertEqual(once.check_once(),0)
         command.assert_not_called()
 
     def test_freshness_and_heartbeat_use_six_not_ten_minutes(self):
@@ -162,7 +162,7 @@ class SingleCheckTests(unittest.TestCase):
                  patch.object(once,'command',side_effect=command), \
                  patch.object(once,'mark_delivered') as acknowledge, \
                  patch.object(once.subprocess,'run',side_effect=[Mock(returncode=1),Mock(returncode=0)]):
-                with self.assertRaises(subprocess.CalledProcessError):once.main()
+                with self.assertRaises(subprocess.CalledProcessError):once.check_once()
                 self.assertTrue(once.read_state()[1]['_copy_pending'])
                 acknowledge.assert_not_called()
 
@@ -195,7 +195,7 @@ class SingleCheckTests(unittest.TestCase):
              patch.object(once,'mark_delivered'), \
              patch.object(once,'command',side_effect=command), \
              patch.object(once.subprocess,'run',side_effect=[Mock(returncode=1),Mock(returncode=0)]):
-            once.main()
+            once.check_once()
         self.assertEqual(captured,['true'])
 
     def test_legacy_loop_program_exits_before_provider_access(self):

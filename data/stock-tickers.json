@@ -1,11 +1,11 @@
 {
   "version": 1,
-  "revision": 45,
+  "revision": 46,
   "refreshIntervalMinutes": 15,
   "priceChecker": {
     "enabled": true,
     "intervalMinutes": 6,
-    "cycles": 1,
+    "cycles": 10,
     "maxActiveCheckers": 15,
     "categories": {
       "ETF": true,
