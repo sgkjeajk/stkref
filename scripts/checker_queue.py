@@ -37,7 +37,7 @@ def settings():
     threshold = int(checker.get("refillThreshold", 5))
     batch = int(checker.get("topUpJobs", 10))
     if threshold < 0 or batch < 1:
-        raise ValueError("Refill threshold must be non-negative and top-up jobs positive")
+        raise ValueError("Refill threshold must be non-negative and top-up price checker programs positive")
     return enabled, cycles, threshold, batch
 
 
@@ -83,7 +83,7 @@ def main():
     enabled, saved_cycles, threshold, batch = settings()
     runs = active_runs(repo, workflow, token)
     count = len(runs)
-    print(f"Active STKREF checker runs: {count}; refill at or below: {threshold}; add: {batch}")
+    print(f"Active STKREF price checker programs: {count}; refill at or below: {threshold}; add: {batch}")
     for run in sorted(runs.values(), key=lambda item: item.get("created_at", "")):
         print(f"- {run['id']} {run['status']} {run.get('event')} {run.get('html_url')}")
 
@@ -112,7 +112,7 @@ def main():
         dispatch(repo, workflow, saved_cycles, token, request_id)
         print(f"Queued single-check program {slot + 1} of {missing}: {request_id}")
     if not missing:
-        print("Active count is above the refill threshold; no jobs added.")
+        print("Active count is above the refill threshold; no price checker programs added.")
 
 
 if __name__ == "__main__":

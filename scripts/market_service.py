@@ -100,11 +100,11 @@ def validate(data):
     if type(checker['cycles'])!=int or checker['cycles'] < PRICE_CHECKER_CYCLE_MIN:
         raise ValueError('Price checker cycles must be a positive whole number.')
     if type(checker['maxActiveCheckers'])!=int or checker['maxActiveCheckers'] < 1:
-        raise ValueError('Max active checker jobs must be a positive whole number.')
+        raise ValueError('Max active price checker programs must be a positive whole number.')
     if type(checker['refillThreshold']) != int or checker['refillThreshold'] < 0:
         raise ValueError('Refill threshold must be a non-negative whole number.')
     if type(checker['topUpJobs']) != int or checker['topUpJobs'] < 1:
-        raise ValueError('Top-up jobs must be a positive whole number.')
+        raise ValueError('Top-up price checker programs must be a positive whole number.')
     if not isinstance(checker['categories'],dict): raise ValueError('Invalid price checker category settings.')
     checker['categories']={k: checker['categories'].get(k, True) for k in PRICE_CHECKER_TYPES}
     if any(type(v)!=bool for v in checker['categories'].values()):
