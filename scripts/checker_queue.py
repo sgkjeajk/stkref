@@ -117,7 +117,10 @@ def main():
         dispatch(repo, workflow, saved_cycles, token, request_id)
         print(f"Queued single-check program {slot + 1} of {missing}: {request_id}")
     if not missing:
-        print("Active count is above the refill threshold; no price checker programs added.")
+        if mode in ("bootstrap", "watchdog"):
+            print("A price checker program already exists; bootstrap added none.")
+        else:
+            print("Active count is above the refill threshold; no price checker programs added.")
 
 
 if __name__ == "__main__":
