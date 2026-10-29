@@ -180,7 +180,13 @@ def main():
                 # Runs on retrieval, publication, copy and acknowledgement
                 # failures too. Workflow always-run step is an extra safeguard.
                 env = dict(os.environ, QUEUE_MODE='queue', CHECKER_EVENT='check_finish')
-                command(sys.executable, 'scripts/checker_queue.py', env=env)
+                if env.get('GH_TOKEN') and env.get('REPO'):
+                    command(sys.executable, 'scripts/checker_queue.py', env=env)
+                else:
+                    # Programs queued before this deployment have the old
+                    # workflow environment. Their startup/always-finish steps
+                    # still maintain the queue; do not fail a successful copy.
+                    print('Earlier workflow environment: queue maintained by startup and finish steps.', flush=True)
     finally:
         for key in ('REFRESH_ATH', 'FORCE_PRICE_CHECK', 'TRIGGER_EVENT'):
             if key in original_env:

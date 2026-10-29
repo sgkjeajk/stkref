@@ -27,7 +27,7 @@ class RepeatedProgramTests(unittest.TestCase):
                     copies+=1
                     if copies==fail_copy:
                         raise subprocess.CalledProcessError(1,args)
-        with patch.object(program,'sync'), \
+        with patch.dict(os.environ,{'GH_TOKEN':'test','REPO':'o/r'}), patch.object(program,'sync'), \
              patch.object(program,'read_state',return_value=(config(cycles),{})), \
              patch.object(program,'wait_until_due',return_value=True) as waiter, \
              patch.object(program,'record_delivery',return_value='stamp'), \
@@ -85,3 +85,12 @@ class RepeatedProgramTests(unittest.TestCase):
             {'id':2,'display_title':'STKREF price checker 2'},
             {'id':3,'display_title':'Task'}]}):
             self.assertEqual(set(checker_queue.active_runs('o/r','task.yml','t')),{1,2})
+
+    def test_predeployment_queued_programs_without_step_token_can_repeat(self):
+        with patch.dict(os.environ,{},clear=True),patch.object(program,'sync'), \
+             patch.object(program,'read_state',return_value=(config(3),{})), \
+             patch.object(program,'check_once') as check,patch.object(program,'command') as command, \
+             contextlib.redirect_stdout(io.StringIO()):
+            program.main()
+        self.assertEqual(check.call_count,3)
+        command.assert_not_called()
