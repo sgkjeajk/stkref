@@ -97,16 +97,21 @@ def main():
             output.write("allowed=" + str(allowed).lower() + "\n")
         return
 
-    if mode not in ("queue", "watchdog"):
+    if mode not in ("queue", "watchdog", "bootstrap"):
         raise ValueError("Unknown queue mode: " + mode)
     if not enabled:
         print("Price checker is disabled or all categories are off; no run dispatched.")
         return
 
-    # Called by the serialized controller only, after a worker has fully finished.
+    # Full batches are requested only inside the serialized price checker.
+    # The independent watchdog may seed an empty queue with ONE program,
+    # so it cannot race a running checker into launching a duplicate batch.
     # Reserve each successful dispatch locally: do not rely on API visibility
     # of a just-dispatched run to calculate the batch size.
-    missing = batch if count <= threshold else 0
+    if mode in ("bootstrap", "watchdog"):
+        missing = 1 if count == 0 else 0
+    else:
+        missing = batch if count <= threshold else 0
     for slot in range(missing):
         request_id = mode + "-" + dt.datetime.now(dt.timezone.utc).strftime("%Y%m%d%H%M%S%f")
         dispatch(repo, workflow, saved_cycles, token, request_id)

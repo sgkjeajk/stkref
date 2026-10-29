@@ -1,10 +1,7 @@
 name: Checker Watchdog
 on:
-  # Check the saved top-up rule on every start and every outcome.
-  workflow_run:
-    workflows: [Task, 'STKREF single-check *']
-    types: [in_progress, completed]
-    branches: [main]
+  # Bootstrap only: each price checker replenishes its own queue directly.
+  # Do not depend on recursively chained workflow_run events for continuity.
   schedule:
     # Independent recovery when a completion event or scheduled launch is delayed.
     - cron: '1/5 16-23 * * 0-4'
@@ -39,11 +36,10 @@ jobs:
           python-version: '3.12'
       - name: Test replenishment and copy protections
         run: python -m unittest discover -s tests -v
-      - name: Replenish checker slots from current settings
+      - name: Start one seed program only if the checker queue is empty
         env:
-          QUEUE_MODE: watchdog
-          CHECKER_EVENT: ${{ github.event.action || github.event_name }}
-          CHECKER_RUN_ID: ${{ github.event.workflow_run.id || '' }}
+          QUEUE_MODE: bootstrap
+          CHECKER_EVENT: bootstrap
           REPO: ${{ github.repository }}
           WORKFLOW_FILE: task.yml
           GH_TOKEN: ${{ github.token }}

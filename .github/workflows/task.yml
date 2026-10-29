@@ -65,6 +65,18 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Check saved queue settings at program startup
+        env:
+          QUEUE_MODE: queue
+          CHECKER_EVENT: program_start
+          CHECKER_RUN_ID: ${{ github.run_id }}
+          REPO: ${{ github.repository }}
+          WORKFLOW_FILE: task.yml
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git fetch origin main
+          git checkout origin/main -- data/stock-tickers.json scripts/checker_queue.py
+          python scripts/checker_queue.py
       - name: Test checker, queue and copy protections
         run: python -m unittest discover -s tests -v
       - name: Wait for saved interval, check once and copy directly
@@ -76,3 +88,16 @@ jobs:
           EVERYDAYCOMPASS_TOKEN: ${{ secrets.EVERYDAYCOMPASS_TOKEN }}
           TRIGGER_EVENT: ${{ inputs.automatic_topup == true && 'schedule' || github.event_name }}
         run: python scripts/checker_once.py
+      - name: Check saved queue settings after every outcome
+        if: always()
+        env:
+          QUEUE_MODE: queue
+          CHECKER_EVENT: program_finish
+          CHECKER_RUN_ID: ${{ github.run_id }}
+          REPO: ${{ github.repository }}
+          WORKFLOW_FILE: task.yml
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git fetch origin main
+          git checkout origin/main -- data/stock-tickers.json scripts/checker_queue.py
+          python scripts/checker_queue.py

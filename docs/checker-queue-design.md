@@ -11,7 +11,12 @@ The source of truth is `data/stock-tickers.json` in `sgkjeajk/stkref`.
 
 The Task workflow uses workflow-level `concurrency`, `cancel-in-progress: false` and `queue: max`. Other single-check programs remain pending rather than performing parallel repeated loops. Every new head program rereads the latest saved interval, settings and snapshot while waiting. It checks the due time again after publication conflicts. GitHub startup delays can make a check later than its due time.
 
-The queue controller reads current settings on every Task start and every completion, including failures and cancellations, and has an independent five-minute recovery schedule. It serializes replenishment. At 0 remaining it adds 10; at 5 it adds 10 (total 15); at 6 it adds none. It counts queued, pending, waiting, requested and in-progress single-check runs, with pagination and deduplication. Obsolete parallel-loop runs are excluded from this count. Their old guard and provider entry point exit without retrieving prices so they cannot interfere during migration.
+Every price checker workflow executes `scripts/checker_queue.py` itself at startup and in an `if: always()` finish step. Each invocation refreshes settings from main, counts queued/running programs and adds the saved batch when the count is at or below the saved threshold. Full-batch replenishment therefore runs within the serialized price-checker workflow, without a downstream `workflow_run` dependency.
+
+The separate five-minute/manual/push watchdog is a bootstrap only: when the entire queue is empty, it starts one seed price checker, whose own startup performs the normal full-batch top-up. At any nonzero count the bootstrap adds nothing, preventing a racing watchdog from adding a duplicate full batch. GitHub startup and cron delays are still possible; those schedules are not the primary continuity mechanism.
+
+An incident on 29 Oct 2026 showed the previous batch finishing at 07:02 UTC with no remaining programs and no subsequent downstream top-up event. The successful direct copy at 07:02 UTC rules out the destination copy as the cause of that gap. This design moves the missing operation into each checker rather than relying on event chaining.
+
 
 ## Backup examined before implementation
 

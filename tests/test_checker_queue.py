@@ -18,7 +18,7 @@ def runs(count):
 
 
 class QueueTests(unittest.TestCase):
-    def execute(self, count=0, enabled=True, cycles=10, threshold=5, batch=10, mode='watchdog', **env):
+    def execute(self, count=0, enabled=True, cycles=10, threshold=5, batch=10, mode='queue', **env):
         with tempfile.NamedTemporaryFile() as out:
             environment = {'QUEUE_MODE': mode, 'REPO': 'owner/repo', 'GH_TOKEN': 'test',
                            'GITHUB_RUN_ID': '1', 'GITHUB_OUTPUT': out.name, **env}
@@ -67,7 +67,7 @@ class QueueTests(unittest.TestCase):
         with patch.object(queue, 'dispatch', side_effect=SystemExit('denied')), \
              patch.object(queue, 'settings', return_value=(True, 10, 5, 10)), \
              patch.object(queue, 'active_runs', return_value={}), \
-             patch.dict(os.environ, {'QUEUE_MODE':'watchdog','REPO':'owner/repo','GH_TOKEN':'test'}), \
+             patch.dict(os.environ, {'QUEUE_MODE':'queue','REPO':'owner/repo','GH_TOKEN':'test'}), \
              contextlib.redirect_stdout(io.StringIO()):
             with self.assertRaises(SystemExit):
                 queue.main()
@@ -122,32 +122,63 @@ class QueueTests(unittest.TestCase):
         self.assertEqual(len(calls), 10)
         self.assertEqual(self.execute(count=15)[0], [])
 
-    def test_dynamic_single_check_run_names_match_the_event_filter(self):
-        import fnmatch
-        controller = (Path(__file__).resolve().parents[1]/'.github/workflows/checker-watchdog.yml').read_text()
-        self.assertIn("'STKREF single-check *'", controller)
-        self.assertTrue(fnmatch.fnmatchcase('STKREF single-check 40790013133','STKREF single-check *'))
-        self.assertFalse(fnmatch.fnmatchcase('Daily','STKREF single-check *'))
-
-    def test_workflow_completion_recovery_covers_failures(self):
+    def test_program_itself_checks_queue_before_work_and_after_any_outcome(self):
         root = Path(__file__).resolve().parents[1]
-        controller = (root / '.github/workflows/checker-watchdog.yml').read_text()
         worker = (root / '.github/workflows/task.yml').read_text()
-        self.assertIn("workflows: [Task, 'STKREF single-check *']", controller)
-        self.assertIn('types: [in_progress, completed]', controller)
-        self.assertNotIn('conclusion ==', controller)
-        self.assertNotIn('if: success()', controller)
-        self.assertIn('CHECKER_EVENT:', controller)
-        self.assertIn('cancel-in-progress: false', controller)
-        self.assertNotIn('group: stkref-checker-queue', worker)
-        self.assertIn('group: stkref-replenishment', controller)
-        self.assertNotIn('Top up the active checker queue', worker)
-        self.assertNotIn('Hand off to the next checker', worker)
-        self.assertNotIn('QUEUE_MODE: watchdog', worker)
-        self.assertIn('group: stkref-price-checker', worker)
-        self.assertIn('queue: max', worker)
-        self.assertIn('python scripts/checker_once.py', worker)
-        self.assertNotIn('seq 1', worker)
+        start = worker.index('name: Check saved queue settings at program startup')
+        tests = worker.index('name: Test checker, queue and copy protections')
+        check = worker.index('run: python scripts/checker_once.py')
+        finish = worker.index('name: Check saved queue settings after every outcome')
+        self.assertLess(start, tests)
+        self.assertLess(tests, check)
+        self.assertLess(check, finish)
+        self.assertIn('if: always()', worker[finish:])
+        self.assertEqual(worker.count('QUEUE_MODE: queue'),2)
+        self.assertEqual(worker.count('python scripts/checker_queue.py'),2)
+        self.assertIn('GH_TOKEN: ${{ github.token }}',worker[start:tests])
+        self.assertIn('GH_TOKEN: ${{ github.token }}',worker[finish:])
+        self.assertIn('group: stkref-price-checker',worker)
+        self.assertIn('queue: max',worker)
+        self.assertNotIn('seq 1',worker)
+
+    def test_bootstrap_has_no_recursive_completion_dependency(self):
+        controller = (Path(__file__).resolve().parents[1]/'.github/workflows/checker-watchdog.yml').read_text()
+        self.assertNotIn('  workflow_run:',controller)
+        self.assertIn('QUEUE_MODE: bootstrap',controller)
+        self.assertIn('group: stkref-replenishment',controller)
+        self.assertIn('queue: max',controller)
+
+    def test_bootstrap_starts_exactly_one_program_only_when_pool_is_empty(self):
+        self.assertEqual(len(self.execute(count=0,mode='bootstrap')[0]),1)
+        for count in (1,5,6,15):
+            self.assertEqual(self.execute(count=count,mode='bootstrap')[0],[])
+
+    def test_bootstrap_cannot_race_worker_into_a_duplicate_full_batch(self):
+        self.assertEqual(self.execute(count=5,mode='bootstrap')[0],[])
+        self.assertEqual(len(self.execute(count=5,mode='queue')[0]),10)
+        self.assertEqual(self.execute(count=15,mode='bootstrap')[0],[])
+        self.assertEqual(self.execute(count=15,mode='queue')[0],[])
+
+    def test_disabled_bootstrap_never_seeds(self):
+        self.assertEqual(self.execute(count=0,mode='bootstrap',enabled=False)[0],[])
+
+    def test_many_programs_keep_the_queue_alive_without_workflow_run_events(self):
+        active=1
+        batches=0
+        for number in range(60):
+            # These represent the actual startup and always-run finish steps;
+            # the checker outcome deliberately has no effect on replenishment.
+            for event in ('program_start','program_finish'):
+                calls,_=self.execute(count=active,CHECKER_EVENT=event)
+                if calls:
+                    self.assertLessEqual(active,5)
+                    self.assertEqual(len(calls),10)
+                    batches+=1
+                    active+=10
+            active-=1
+            self.assertGreater(active,0)
+        self.assertGreater(batches,3)
+
 
 
 if __name__ == '__main__':
