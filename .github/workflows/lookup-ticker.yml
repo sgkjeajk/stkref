@@ -37,7 +37,7 @@ jobs:
           CHECKER_SINGLE_PASS: 'true'
           LOOKUP_TICKER: ${{ github.event_name == 'push' && 'A7RU' || inputs.ticker }}
           REQUEST_ID: ${{ inputs.request_id || format('smoke-{0}', github.run_id) }}
-        run: python scripts/github_market_update.py
+        run: python scripts/ticker_lookup.py
       - name: Publish lookup result for the admin
         env:
           LOOKUP_TICKER: ${{ github.event_name == 'push' && 'A7RU' || inputs.ticker }}
