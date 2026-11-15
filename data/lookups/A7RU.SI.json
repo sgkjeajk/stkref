@@ -1,0 +1,11 @@
+{
+  "request_id": "smoke-43767750160",
+  "generated_at": "2026-11-15T22:10:12.727330Z",
+  "instrument": {
+    "ticker": "A7RU.SI",
+    "name": "Keppel Infrastructure Trust",
+    "region": "SES",
+    "type": "Stock",
+    "metadata_source": "Yahoo Finance quote webpage"
+  }
+}
