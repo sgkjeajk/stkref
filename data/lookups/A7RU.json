@@ -1,5 +1,11 @@
 {
-  "request_id": "smoke-43768338898",
-  "generated_at": "2026-11-15T22:16:20.478997Z",
-  "error": "Yahoo Finance chart metadata unavailable: query1.finance.yahoo.com: HTTP Error 404: Not Found; query2.finance.yahoo.com: HTTP Error 404: Not Found"
+  "request_id": "smoke-43768533038",
+  "generated_at": "2026-11-15T22:18:23.895047Z",
+  "instrument": {
+    "ticker": "A7RU.SI",
+    "name": "Keppel Infrastructure Trust",
+    "region": "Singapore",
+    "type": "Stock",
+    "metadata_source": "Yahoo Finance symbol search"
+  }
 }
