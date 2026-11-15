@@ -35,12 +35,12 @@ jobs:
       - name: Retrieve exact-symbol metadata
         env:
           CHECKER_SINGLE_PASS: 'true'
-          LOOKUP_TICKER: ${{ github.event_name == 'push' && 'A7RU.SI' || inputs.ticker }}
+          LOOKUP_TICKER: ${{ github.event_name == 'push' && 'A7RU' || inputs.ticker }}
           REQUEST_ID: ${{ inputs.request_id || format('smoke-{0}', github.run_id) }}
         run: python scripts/github_market_update.py
       - name: Publish lookup result for the admin
         env:
-          LOOKUP_TICKER: ${{ github.event_name == 'push' && 'A7RU.SI' || inputs.ticker }}
+          LOOKUP_TICKER: ${{ github.event_name == 'push' && 'A7RU' || inputs.ticker }}
         run: |
           TICKER_UPPER="$(printf '%s' "$LOOKUP_TICKER" | tr '[:lower:]' '[:upper:]')"
           git config user.name "github-actions[bot]"
@@ -50,7 +50,7 @@ jobs:
           git push origin HEAD:"$GITHUB_REF_NAME"
       - name: Confirm complete metadata was returned
         env:
-          LOOKUP_TICKER: ${{ github.event_name == 'push' && 'A7RU.SI' || inputs.ticker }}
+          LOOKUP_TICKER: ${{ github.event_name == 'push' && 'A7RU' || inputs.ticker }}
         run: |
           python - <<'PY'
           import json, os
