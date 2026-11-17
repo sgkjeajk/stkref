@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "revision": 47,
+  "revision": 48,
   "refreshIntervalMinutes": 15,
   "priceChecker": {
     "enabled": true,
@@ -15,7 +15,7 @@
     "refillThreshold": 5,
     "topUpJobs": 10
   },
-  "saved_at": "2026-11-17T22:51:04.667Z",
+  "saved_at": "2026-11-17T22:53:38.898Z",
   "instruments": [
     {
       "ticker": "ES3.SI",
@@ -142,6 +142,15 @@
       "region": "United States",
       "type": "Stock",
       "metadata_source": "Nasdaq directory · 6 Oct 2026"
+    },
+    {
+      "ticker": "K71U.SI",
+      "enabled": true,
+      "show": true,
+      "name": "Keppel REIT",
+      "region": "Singapore",
+      "type": "Stock",
+      "metadata_source": "Yahoo Finance symbol search"
     },
     {
       "ticker": "META",
