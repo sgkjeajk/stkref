@@ -1,0 +1,11 @@
+{
+  "request_id": "773b8d37-813d-4147-b884-be5194185e78",
+  "generated_at": "2026-11-17T22:53:07.849647Z",
+  "instrument": {
+    "ticker": "K71U.SI",
+    "name": "Keppel REIT",
+    "region": "Singapore",
+    "type": "Stock",
+    "metadata_source": "Yahoo Finance symbol search"
+  }
+}
