@@ -1,0 +1,11 @@
+{
+  "request_id": "6d3b9751-9f9b-4b84-a1e3-f3287e9cf786",
+  "generated_at": "2026-11-17T22:56:30.832020Z",
+  "instrument": {
+    "ticker": "5E2.SI",
+    "name": "Seatrium Limited",
+    "region": "SES",
+    "type": "Stock",
+    "metadata_source": "Yahoo Finance quote webpage"
+  }
+}
