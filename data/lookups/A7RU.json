@@ -1,0 +1,11 @@
+{
+  "request_id": "c635d85e-3010-4c68-9956-72bd74f3c6ff",
+  "generated_at": "2026-11-17T22:50:52.661137Z",
+  "instrument": {
+    "ticker": "A7RU.SI",
+    "name": "Keppel Infrastructure Trust",
+    "region": "Singapore",
+    "type": "Stock",
+    "metadata_source": "Yahoo Finance symbol search"
+  }
+}
