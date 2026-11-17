@@ -1,0 +1,5 @@
+{
+  "request_id": "dcf4a8f3-a907-4911-874b-230dbed8c8c7",
+  "generated_at": "2026-11-17T22:54:13.931499Z",
+  "error": "Yahoo Finance could not verify this ticker or a unique market suffix. Direct lookup: Yahoo Finance chart metadata unavailable: query1.finance.yahoo.com: HTTP Error 404: Not Found; query2.finance.yahoo.com: HTTP Error 404: Not Found"
+}
