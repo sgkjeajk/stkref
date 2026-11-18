@@ -1,4 +1,5 @@
 import base64
+import base64
 import json
 import unittest
 import tempfile
@@ -133,7 +134,7 @@ class CopyTests(unittest.TestCase):
         def request(method, path, body=None):
             request_calls.append((method, path, body))
             if path.startswith('/contents/data/stock-tickers.json'):
-                return tickers
+                return {'content': base64.b64encode(json.dumps(tickers).encode()).decode()}
             raise AssertionError((method, path))
         with patch.object(copy_market_data, 'github', return_value=request):
             message = copy_market_data.copy_ticker_config(tickers, 'test')
