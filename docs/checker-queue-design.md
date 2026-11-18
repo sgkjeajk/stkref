@@ -5,7 +5,7 @@ The source of truth is `data/stock-tickers.json` in `sgkjeajk/stkref`.
 - `priceChecker.intervalMinutes`: minimum time from the previous completed check to the next retrieval (currently 6 minutes).
 - `priceChecker.refillThreshold`: count queued and running price checker programs; top up when the count is at or below this value (currently 5).
 - `priceChecker.topUpJobs`: number of new programs to queue in a top-up (currently 10), not a target pool size.
-- `priceChecker.cycles`: checks within each running program (currently 10). Each check publishes its snapshot and directly copies both market and dividend files to EverydayCompass before the next interval.
+- `priceChecker.cycles`: checks within each running program (currently 10). Each check publishes its snapshot and directly copies the ticker configuration, market snapshot and dividend files to EverydayCompass before the next interval.
 - The `checker_cycles` dispatch input is retained for compatibility; the saved `cycles` setting controls the program.
 - The old `maxActiveCheckers` field no longer determines concurrent retrieval. Only one price-checker workflow may execute at a time.
 
@@ -15,7 +15,7 @@ After every check, including a failed check, the program also executes the queue
 
 The separate five-minute/manual/push watchdog is a bootstrap only: when the entire queue is empty, it starts one seed price checker, whose own startup performs the normal full-batch top-up. At any nonzero count the bootstrap adds nothing, preventing a racing watchdog from adding a duplicate full batch. GitHub startup and cron delays are still possible; those schedules are not the primary continuity mechanism.
 
-An incident on 29 Oct 2026 showed the previous batch finishing at 07:02 UTC with no remaining programs and no subsequent downstream top-up event. The successful direct copy at 07:02 UTC rules out the destination copy as the cause of that gap. This design moves the missing operation into each checker rather than relying on event chaining.
+An incident on 29 Oct 2026 showed the previous batch finishing at 07:02 UTC with no remaining programs and no subsequent downstream top-up event. The successful direct copy at 07:02 UTC rules out the destination copy as the cause of that gap. The direct copy now includes `stock-tickers.json` as well as the market and dividend snapshots. This design moves the missing operation into each checker rather than relying on event chaining.
 
 
 ## Backup examined before implementation
