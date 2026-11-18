@@ -112,8 +112,10 @@ class CopyTests(unittest.TestCase):
             with patch.object(copy_market_data,'ROOT',root), \
                  patch.dict(copy_market_data.os.environ,{'EVERYDAYCOMPASS_TOKEN':'test'}), \
                  patch.object(copy_market_data,'github',return_value='client'), \
+                 patch.object(copy_market_data,'copy_ticker_config',return_value='Ticker copied') as ticker_send, \
                  patch.object(copy_market_data,'copy_snapshot',return_value='Both checked') as send:
                 self.assertEqual(copy_market_data.main(),0)
+            ticker_send.assert_called_once_with(tickers, 'test')
             send.assert_called_once_with(snapshot(13),'client',dividends=dividends,tickers=tickers)
 
     def test_ticker_list_is_copied_in_same_commit(self):
@@ -124,6 +126,19 @@ class CopyTests(unittest.TestCase):
         self.assertIn('stock-tickers.json', paths)
         copied = json.loads(next(entry['content'] for entry in remote.entries if entry['path'] == 'stock-tickers.json'))
         self.assertEqual(copied['revision'], 3)
+
+    def test_ticker_config_copy_skips_equal_revision(self):
+        tickers = {'revision': 3, 'instruments': [{'ticker': 'D05.SI'}]}
+        request_calls = []
+        def request(method, path, body=None):
+            request_calls.append((method, path, body))
+            if path.startswith('/contents/data/stock-tickers.json'):
+                return tickers
+            raise AssertionError((method, path))
+        with patch.object(copy_market_data, 'github', return_value=request):
+            message = copy_market_data.copy_ticker_config(tickers, 'test')
+        self.assertIn('already current', message)
+        self.assertEqual(len(request_calls), 1)
 
     def test_missing_dividend_file_cannot_report_success(self):
         with tempfile.TemporaryDirectory() as directory:
