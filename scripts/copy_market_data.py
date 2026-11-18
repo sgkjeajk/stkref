@@ -167,7 +167,7 @@ def main():
         validate_tickers(tickers)
         ticker_message = copy_ticker_config(tickers, token)
         market_message = copy_snapshot(data, github(token), dividends=dividends, tickers=tickers)
-        print(ticker_message + ' ' + market_message))
+        print(ticker_message + ' ' + market_message)
         return 0
     except urllib.error.HTTPError as error:
         # Do not print response bodies or request headers containing credentials.
