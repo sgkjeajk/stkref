@@ -1,0 +1,28 @@
+name: Copy ticker configuration to EverydayCompass
+run-name: Copy ticker list to EverydayCompass
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'data/stock-tickers.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  copy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Copy ticker, market and dividend data
+        env:
+          EVERYDAYCOMPASS_TOKEN: ${{ secrets.EVERYDAYCOMPASS_TOKEN }}
+        run: python scripts/copy_market_data.py
