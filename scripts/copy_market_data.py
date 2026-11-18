@@ -27,6 +27,16 @@ def validate(data):
         raise ValueError('Refusing to publish an empty or invalid market snapshot')
 
 
+def validate_tickers(data):
+    if not isinstance(data, dict):
+        raise ValueError('Refusing to publish an invalid ticker configuration')
+    revision = data.get('revision')
+    if not isinstance(revision, int) or revision < 0:
+        raise ValueError('Ticker configuration revision must be a non-negative integer')
+    if not isinstance(data.get('instruments'), list) or not data['instruments']:
+        raise ValueError('Refusing to publish an empty ticker configuration')
+
+
 def github(token):
     def request(method, path, body=None):
         url = 'https://api.github.com/repos/' + DESTINATION + path
@@ -51,8 +61,10 @@ def remote_json(request, path, revision, missing=None):
     return json.loads(base64.b64decode(result['content']))
 
 
-def copy_snapshot(data, request, pause=time.sleep, dividends=None):
+def copy_snapshot(data, request, pause=time.sleep, dividends=None, tickers=None):
     validate(data)
+    if tickers is not None:
+        validate_tickers(tickers)
     for attempt in range(3):
         try:
             head = request('GET', '/git/ref/heads/' + BRANCH)['object']['sha']
@@ -60,12 +72,17 @@ def copy_snapshot(data, request, pause=time.sleep, dividends=None):
             validate(current)
             market_newer = stamp(current) < stamp(data)
             dividend_newer = False
+            ticker_newer = False
+            if tickers is not None:
+                current_tickers = remote_json(request, 'stock-tickers.json', head, missing={})
+                current_revision = current_tickers.get('revision', -1)
+                ticker_newer = not isinstance(current_revision, int) or current_revision < tickers['revision']
             if dividends is not None:
                 current_dividends = remote_json(request, 'dividend-data.json', head, missing={})
                 dividend_newer = (not current_dividends.get('generated_at')
                                   or stamp(current_dividends) < stamp(dividends))
-            if not market_newer and not dividend_newer:
-                return 'Destination already has an equal or newer check; nothing overwritten.'
+            if not market_newer and not dividend_newer and not ticker_newer:
+                return 'Destination already has equal or newer market, dividend and ticker data; nothing overwritten.'
             previous = remote_json(request, 'refresh-sync-status.json', head, missing={})
             status = {**previous,
                       'copied_at': dt.datetime.now(dt.timezone.utc).isoformat().replace('+00:00', 'Z')}
@@ -76,13 +93,16 @@ def copy_snapshot(data, request, pause=time.sleep, dividends=None):
             if dividend_newer:
                 status['source_dividend_generated_at'] = dividends['generated_at']
                 files.append(('dividend-data.json', dividends))
+            if ticker_newer:
+                status['source_ticker_revision'] = tickers['revision']
+                files.append(('stock-tickers.json', tickers))
             commit = request('GET', '/git/commits/' + head)
             entries = [{'path': path, 'mode': '100644', 'type': 'blob',
                         'content': json.dumps(value, indent=2) + '\n'}
                        for path, value in files]
             tree = request('POST', '/git/trees', {'base_tree': commit['tree']['sha'], 'tree': entries})
             new_commit = request('POST', '/git/commits', {
-                'message': 'Copy completed STKREF market check',
+                'message': 'Copy completed STKREF market, dividend and ticker data',
                 'tree': tree['sha'], 'parents': [head]})
             # Non-forced update prevents overwriting other jobs' commits.
             request('PATCH', '/git/refs/heads/' + BRANCH,
@@ -104,10 +124,13 @@ def main():
     root = ROOT
     try:
         data = json.loads((root / 'market-data.json').read_text(encoding='utf-8'))
+        ticker_path = root / 'data' / 'stock-tickers.json'
+        tickers = json.loads(ticker_path.read_text(encoding='utf-8'))
         dividend_path = root / 'dividend-data.json'
         dividends = json.loads(dividend_path.read_text(encoding='utf-8'))
         stamp(dividends)  # Both source files are required before completion.
-        print(copy_snapshot(data, github(token), dividends=dividends))
+        validate_tickers(tickers)
+        print(copy_snapshot(data, github(token), dividends=dividends, tickers=tickers))
         return 0
     except urllib.error.HTTPError as error:
         # Do not print response bodies or request headers containing credentials.
