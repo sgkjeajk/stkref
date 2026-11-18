@@ -100,10 +100,13 @@ class CopyTests(unittest.TestCase):
         self.assertEqual(status['source_market_generated_at'],snapshot(13)['generated_at'])
         self.assertEqual(status['source_dividend_generated_at'],dividends['generated_at'])
 
-    def test_entrypoint_reads_and_passes_both_source_files(self):
+    def test_entrypoint_reads_and_passes_all_source_files(self):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory)
             (root/'market-data.json').write_text(json.dumps(snapshot(13)))
+            (root/'data').mkdir()
+            tickers={'revision':7,'instruments':[{'ticker':'D05.SI','enabled':True}]}
+            (root/'data'/'stock-tickers.json').write_text(json.dumps(tickers))
             dividends={'generated_at':'2026-10-28T11:00:00Z'}
             (root/'dividend-data.json').write_text(json.dumps(dividends))
             with patch.object(copy_market_data,'ROOT',root), \
@@ -111,7 +114,16 @@ class CopyTests(unittest.TestCase):
                  patch.object(copy_market_data,'github',return_value='client'), \
                  patch.object(copy_market_data,'copy_snapshot',return_value='Both checked') as send:
                 self.assertEqual(copy_market_data.main(),0)
-            send.assert_called_once_with(snapshot(13),'client',dividends=dividends)
+            send.assert_called_once_with(snapshot(13),'client',dividends=dividends,tickers=tickers)
+
+    def test_ticker_list_is_copied_in_same_commit(self):
+        remote = Destination(snapshot(12))
+        tickers = {'revision': 3, 'instruments': [{'ticker': 'D05.SI'}]}
+        copy_snapshot(snapshot(13), remote, tickers=tickers)
+        paths = [entry['path'] for entry in remote.entries]
+        self.assertIn('stock-tickers.json', paths)
+        copied = json.loads(next(entry['content'] for entry in remote.entries if entry['path'] == 'stock-tickers.json'))
+        self.assertEqual(copied['revision'], 3)
 
     def test_missing_dividend_file_cannot_report_success(self):
         with tempfile.TemporaryDirectory() as directory:
