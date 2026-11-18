@@ -9,6 +9,8 @@ import urllib.error
 import urllib.request
 
 DESTINATION = 'myai118/EverydayCompass'
+TICKER_DESTINATION = 'myai118/digital-tools'
+TICKER_PATH = 'data/stock-tickers.json'
 BRANCH = 'main'
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -37,9 +39,9 @@ def validate_tickers(data):
         raise ValueError('Refusing to publish an empty ticker configuration')
 
 
-def github(token):
+def github(token, destination=DESTINATION):
     def request(method, path, body=None):
-        url = 'https://api.github.com/repos/' + DESTINATION + path
+        url = 'https://api.github.com/repos/' + destination + path
         headers = {'Authorization': 'Bearer ' + token,
                    'Accept': 'application/vnd.github+json',
                    'X-GitHub-Api-Version': '2022-11-28'}
@@ -59,6 +61,39 @@ def remote_json(request, path, revision, missing=None):
             return missing
         raise
     return json.loads(base64.b64decode(result['content']))
+
+
+def copy_ticker_config(tickers, token, pause=time.sleep):
+    """Copy the source ticker configuration to the live monitor repository."""
+    validate_tickers(tickers)
+    request = github(token, TICKER_DESTINATION)
+    for attempt in range(3):
+        try:
+            try:
+                current = remote_json(request, TICKER_PATH, BRANCH)
+            except urllib.error.HTTPError as error:
+                if error.code == 404:
+                    current = {}
+                else:
+                    raise
+            current_revision = current.get('revision', -1)
+            if isinstance(current_revision, int) and current_revision >= tickers['revision']:
+                return 'Live monitor ticker configuration is already current.'
+            head = request('GET', '/git/ref/heads/' + BRANCH)['object']['sha']
+            raw = request('GET', '/contents/' + TICKER_PATH + '?ref=' + head)
+            content = json.dumps(tickers, indent=2) + '\n'
+            request('PUT', '/contents/' + TICKER_PATH, {
+                'message': 'Sync STKREF ticker configuration',
+                'branch': BRANCH,
+                'sha': raw['sha'],
+                'content': base64.b64encode(content.encode('utf-8')).decode('ascii')
+            })
+            return 'Copied ticker configuration to ' + TICKER_DESTINATION + '.'
+        except urllib.error.HTTPError as error:
+            if error.code not in (409, 422, 429, 500, 502, 503, 504) or attempt == 2:
+                raise
+            pause(2 ** attempt)
+    raise RuntimeError('Ticker configuration copy retries exhausted')
 
 
 def copy_snapshot(data, request, pause=time.sleep, dividends=None, tickers=None):
@@ -130,7 +165,9 @@ def main():
         dividends = json.loads(dividend_path.read_text(encoding='utf-8'))
         stamp(dividends)  # Both source files are required before completion.
         validate_tickers(tickers)
-        print(copy_snapshot(data, github(token), dividends=dividends, tickers=tickers))
+        ticker_message = copy_ticker_config(tickers, token)
+        market_message = copy_snapshot(data, github(token), dividends=dividends, tickers=tickers)
+        print(ticker_message + ' ' + market_message))
         return 0
     except urllib.error.HTTPError as error:
         # Do not print response bodies or request headers containing credentials.
