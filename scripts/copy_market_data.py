@@ -165,9 +165,10 @@ def main():
         dividends = json.loads(dividend_path.read_text(encoding='utf-8'))
         stamp(dividends)  # Both source files are required before completion.
         validate_tickers(tickers)
-        ticker_message = copy_ticker_config(tickers, token)
+        # Publish snapshots and ticker source to EverydayCompass using its existing token.
+        # The monitor's display configuration in digital-tools is managed separately.
         market_message = copy_snapshot(data, github(token), dividends=dividends, tickers=tickers)
-        print(ticker_message + ' ' + market_message)
+        print(market_message)
         return 0
     except urllib.error.HTTPError as error:
         # Do not print response bodies or request headers containing credentials.
