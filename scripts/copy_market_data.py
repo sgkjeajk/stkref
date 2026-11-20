@@ -151,10 +151,14 @@ def copy_snapshot(data, request, pause=time.sleep, dividends=None, tickers=None)
 
 
 def main():
-    token = os.environ.get('EVERYDAYCOMPASS_TOKEN', '').strip()
-    if not token:
-        print('::warning::Direct market copy unavailable: EVERYDAYCOMPASS_TOKEN is missing. '
-              'Source refresh is saved; the next queued checker retries delivery.')
+    market_token = os.environ.get('EVERYDAYCOMPASS_TOKEN', '').strip()
+    ticker_token = os.environ.get('DIGITALTOOLS_TOKEN', '').strip()
+    if not market_token:
+        print('::warning::Market copy unavailable: EVERYDAYCOMPASS_TOKEN is missing.')
+        return 2
+    if not ticker_token:
+        print('::warning::Ticker configuration copy unavailable: DIGITALTOOLS_TOKEN is missing. '
+              'Add a repository secret with Contents: read and write access to myai118/digital-tools.')
         return 2
     root = ROOT
     try:
@@ -165,8 +169,8 @@ def main():
         dividends = json.loads(dividend_path.read_text(encoding='utf-8'))
         stamp(dividends)  # Both source files are required before completion.
         validate_tickers(tickers)
-        ticker_message = copy_ticker_config(tickers, token)
-        market_message = copy_snapshot(data, github(token), dividends=dividends, tickers=tickers)
+        ticker_message = copy_ticker_config(tickers, ticker_token)
+        market_message = copy_snapshot(data, github(market_token), dividends=dividends, tickers=tickers)
         print(ticker_message + ' ' + market_message)
         return 0
     except urllib.error.HTTPError as error:
