@@ -116,7 +116,7 @@ class CopyTests(unittest.TestCase):
                  patch.object(copy_market_data,'copy_ticker_config',return_value='Ticker copied') as ticker_send, \
                  patch.object(copy_market_data,'copy_snapshot',return_value='Both checked') as send:
                 self.assertEqual(copy_market_data.main(),0)
-            ticker_send.assert_called_once_with(tickers, 'test')
+            ticker_send.assert_not_called()
             send.assert_called_once_with(snapshot(13),'client',dividends=dividends,tickers=tickers)
 
     def test_ticker_list_is_copied_in_same_commit(self):
