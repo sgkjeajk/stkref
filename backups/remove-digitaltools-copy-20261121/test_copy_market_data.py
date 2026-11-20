@@ -1,0 +1,165 @@
+import base64
+import base64
+import json
+import unittest
+import tempfile
+from unittest.mock import patch
+from urllib.error import HTTPError
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
+import copy_market_data
+from copy_market_data import copy_snapshot, validate
+
+
+def snapshot(hour):
+    return {'generated_at': f'2026-10-28T{hour:02d}:00:00Z',
+            'last_check_completed_at': f'2026-10-28T{hour:02d}:00:00Z',
+            'instruments': [{'ticker': 'D05.SI', 'current_price': 73.96}]}
+
+
+class Destination:
+    def __init__(self, current, conflicts=0):
+        self.current = current
+        self.conflicts = conflicts
+        self.calls = []
+        self.entries = []
+
+    def __call__(self, method, path, body=None):
+        self.calls.append((method, path, body))
+        if path == '/git/ref/heads/main':
+            return {'object': {'sha': 'head'}}
+        if path.startswith('/contents/'):
+            data = (self.current if 'market-data.json' in path else
+                    {'generated_at': '2026-10-28T10:00:00Z'} if 'dividend-data.json' in path else
+                    {'source_dividend_generated_at': 'keep-me'})
+            return {'content': base64.b64encode(json.dumps(data).encode()).decode()}
+        if path == '/git/commits/head':
+            return {'tree': {'sha': 'base-tree'}}
+        if method == 'POST' and path == '/git/trees':
+            self.entries = body['tree']
+            return {'sha': 'new-tree'}
+        if method == 'POST' and path == '/git/commits':
+            return {'sha': 'new-commit'}
+        if method == 'PATCH':
+            if self.conflicts:
+                self.conflicts -= 1
+                self.current = snapshot(14)
+                raise HTTPError('https://api.github.com', 422, 'Head advanced', {}, None)
+            return {}
+        raise AssertionError((method, path))
+
+
+class CopyTests(unittest.TestCase):
+    def test_atomic_copy_preserves_dividend_status(self):
+        remote = Destination(snapshot(12))
+        copy_snapshot(snapshot(13), remote)
+        self.assertEqual([x['path'] for x in remote.entries], ['market-data.json', 'refresh-sync-status.json'])
+        status = json.loads(remote.entries[1]['content'])
+        self.assertEqual(status['source_dividend_generated_at'], 'keep-me')
+        patch = [body for method, _, body in remote.calls if method == 'PATCH']
+        self.assertEqual(patch, [{'sha': 'new-commit', 'force': False}])
+
+    def test_never_overwrites_newer_or_equal_snapshot(self):
+        for hour in (13, 14):
+            remote = Destination(snapshot(hour))
+            copy_snapshot(snapshot(13), remote)
+            self.assertFalse(any(method != 'GET' for method, _, _ in remote.calls))
+
+    def test_competing_newer_commit_wins_on_retry(self):
+        remote = Destination(snapshot(12), conflicts=1)
+        message = copy_snapshot(snapshot(13), remote, pause=lambda _: None)
+        self.assertIn('newer', message)
+        self.assertEqual(sum(method == 'PATCH' for method, _, _ in remote.calls), 1)
+
+    def test_invalid_snapshot_is_rejected_before_network(self):
+        remote = Destination(snapshot(12))
+        data = snapshot(13)
+        data['instruments'] = []
+        with self.assertRaises(ValueError):
+            copy_snapshot(data, remote)
+        self.assertEqual(remote.calls, [])
+
+    def test_dividends_copy_even_when_market_is_current(self):
+        remote = Destination(snapshot(14))
+        dividends = {'generated_at': '2026-10-28T11:00:00Z'}
+        copy_snapshot(snapshot(13), remote, dividends=dividends)
+        paths = [entry['path'] for entry in remote.entries]
+        self.assertNotIn('market-data.json', paths)
+        self.assertIn('dividend-data.json', paths)
+        status = json.loads(remote.entries[0]['content'])
+        self.assertEqual(status['source_dividend_generated_at'], dividends['generated_at'])
+
+    def test_market_and_dividend_updates_share_one_atomic_commit(self):
+        remote = Destination(snapshot(12))
+        dividends = {'generated_at':'2026-10-28T11:00:00Z'}
+        copy_snapshot(snapshot(13), remote, dividends=dividends)
+        self.assertEqual({e['path'] for e in remote.entries},
+                         {'market-data.json','dividend-data.json','refresh-sync-status.json'})
+        self.assertEqual(sum(method=='PATCH' for method,_,_ in remote.calls),1)
+        status = json.loads(next(e['content'] for e in remote.entries if e['path']=='refresh-sync-status.json'))
+        self.assertEqual(status['source_market_generated_at'],snapshot(13)['generated_at'])
+        self.assertEqual(status['source_dividend_generated_at'],dividends['generated_at'])
+
+    def test_entrypoint_reads_and_passes_all_source_files(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            (root/'market-data.json').write_text(json.dumps(snapshot(13)))
+            (root/'data').mkdir()
+            tickers={'revision':7,'instruments':[{'ticker':'D05.SI','enabled':True}]}
+            (root/'data'/'stock-tickers.json').write_text(json.dumps(tickers))
+            dividends={'generated_at':'2026-10-28T11:00:00Z'}
+            (root/'dividend-data.json').write_text(json.dumps(dividends))
+            with patch.object(copy_market_data,'ROOT',root), \
+                 patch.dict(copy_market_data.os.environ,{'EVERYDAYCOMPASS_TOKEN':'test'}), \
+                 patch.object(copy_market_data,'github',return_value='client'), \
+                 patch.object(copy_market_data,'copy_ticker_config',return_value='Ticker copied') as ticker_send, \
+                 patch.object(copy_market_data,'copy_snapshot',return_value='Both checked') as send:
+                self.assertEqual(copy_market_data.main(),0)
+            ticker_send.assert_called_once_with(tickers, 'test')
+            send.assert_called_once_with(snapshot(13),'client',dividends=dividends,tickers=tickers)
+
+    def test_ticker_list_is_copied_in_same_commit(self):
+        remote = Destination(snapshot(12))
+        tickers = {'revision': 3, 'instruments': [{'ticker': 'D05.SI'}]}
+        copy_snapshot(snapshot(13), remote, tickers=tickers)
+        paths = [entry['path'] for entry in remote.entries]
+        self.assertIn('stock-tickers.json', paths)
+        copied = json.loads(next(entry['content'] for entry in remote.entries if entry['path'] == 'stock-tickers.json'))
+        self.assertEqual(copied['revision'], 3)
+
+    def test_ticker_config_copy_skips_equal_revision(self):
+        tickers = {'revision': 3, 'instruments': [{'ticker': 'D05.SI'}]}
+        request_calls = []
+        def request(method, path, body=None):
+            request_calls.append((method, path, body))
+            if path.startswith('/contents/data/stock-tickers.json'):
+                return {'content': base64.b64encode(json.dumps(tickers).encode()).decode()}
+            raise AssertionError((method, path))
+        with patch.object(copy_market_data, 'github', return_value=request):
+            message = copy_market_data.copy_ticker_config(tickers, 'test')
+        self.assertIn('already current', message)
+        self.assertEqual(len(request_calls), 1)
+
+    def test_missing_dividend_file_cannot_report_success(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            (root/'market-data.json').write_text(json.dumps(snapshot(13)))
+            with patch.object(copy_market_data,'ROOT',root), \
+                 patch.dict(copy_market_data.os.environ,{'EVERYDAYCOMPASS_TOKEN':'test'}), \
+                 patch.object(copy_market_data,'copy_snapshot') as send:
+                self.assertEqual(copy_market_data.main(),1)
+            send.assert_not_called()
+
+    def test_auth_failure_is_not_retried(self):
+        calls = []
+        def denied(*args):
+            calls.append(args)
+            raise HTTPError('https://api.github.com', 403, 'Forbidden', {}, None)
+        with self.assertRaises(HTTPError):
+            copy_snapshot(snapshot(13), denied, pause=lambda _: None)
+        self.assertEqual(len(calls), 1)
+
+
+if __name__ == '__main__':
+    unittest.main()
