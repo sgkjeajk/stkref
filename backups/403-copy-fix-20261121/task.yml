@@ -1,0 +1,106 @@
+name: Task
+run-name: STKREF price checker ${{ github.run_id }}
+on:
+  schedule:
+    # Historical-high checks use the same single-worker queue.
+    - cron: '23 0,6,12 * * 1-5'
+  workflow_dispatch:
+    inputs:
+      refresh_ath:
+        description: Also refresh all-time highs
+        required: false
+        default: false
+        type: boolean
+      checker_cycles:
+        description: Compatibility input; checks per program come from saved STKREF settings
+        required: false
+        default: ''
+        type: string
+      force_price_check:
+        description: Run even if scheduled checking is off
+        required: false
+        default: false
+        type: boolean
+      automatic_topup:
+        description: Internal queue top-up request
+        required: false
+        default: false
+        type: boolean
+      request_id:
+        description: Optional request correlation ID
+        required: false
+        default: ''
+        type: string
+  push:
+    branches: [main]
+    paths:
+      - 'data/stock-tickers.json'
+      - 'scripts/github_market_update.py'
+      - 'scripts/market_service.py'
+      - 'scripts/market_hours.py'
+      - 'scripts/google_price_fallback.py'
+      - 'scripts/checker_queue.py'
+      - 'scripts/checker_once.py'
+      - 'scripts/copy_market_data.py'
+      - 'tests/test_*.py'
+      - '.github/workflows/task.yml'
+      - '.github/workflows/checker-watchdog.yml'
+permissions:
+  contents: write
+  actions: write
+# One program retrieves/copies prices while the others remain genuinely pending.
+# queue:max preserves the waiting programs instead of replacing a pending run.
+concurrency:
+  group: stkref-price-checker
+  cancel-in-progress: false
+  queue: max
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Check saved queue settings at program startup
+        env:
+          QUEUE_MODE: queue
+          CHECKER_EVENT: program_start
+          CHECKER_RUN_ID: ${{ github.run_id }}
+          REPO: ${{ github.repository }}
+          WORKFLOW_FILE: task.yml
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git fetch origin main
+          git checkout origin/main -- data/stock-tickers.json scripts/checker_queue.py
+          python scripts/checker_queue.py
+      - name: Test checker, queue and copy protections
+        run: python -m unittest discover -s tests -v
+      - name: Repeat saved checks and copy both files after each check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          WORKFLOW_FILE: task.yml
+          CHECKER_SINGLE_PASS: 'true'
+          REFRESH_ATH: ${{ (github.event_name == 'schedule') || inputs.refresh_ath || false }}
+          FORCE_PRICE_CHECK: ${{ inputs.force_price_check || false }}
+          REQUEST_ID: ${{ inputs.request_id || github.run_id }}
+          EVERYDAYCOMPASS_TOKEN: ${{ secrets.EVERYDAYCOMPASS_TOKEN }}
+          TRIGGER_EVENT: ${{ inputs.automatic_topup == true && 'schedule' || github.event_name }}
+        run: python scripts/checker_once.py
+      - name: Check saved queue settings after every outcome
+        if: always()
+        env:
+          QUEUE_MODE: queue
+          CHECKER_EVENT: program_finish
+          CHECKER_RUN_ID: ${{ github.run_id }}
+          REPO: ${{ github.repository }}
+          WORKFLOW_FILE: task.yml
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git fetch origin main
+          git checkout origin/main -- data/stock-tickers.json scripts/checker_queue.py
+          python scripts/checker_queue.py
