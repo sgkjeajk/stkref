@@ -89,6 +89,7 @@ jobs:
           FORCE_PRICE_CHECK: ${{ inputs.force_price_check || false }}
           REQUEST_ID: ${{ inputs.request_id || github.run_id }}
           EVERYDAYCOMPASS_TOKEN: ${{ secrets.EVERYDAYCOMPASS_TOKEN }}
+          DIGITALTOOLS_TOKEN: ${{ secrets.DIGITALTOOLS_TOKEN }}
           TRIGGER_EVENT: ${{ inputs.automatic_topup == true && 'schedule' || github.event_name }}
         run: python scripts/checker_once.py
       - name: Check saved queue settings after every outcome
