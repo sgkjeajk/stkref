@@ -174,10 +174,28 @@ def quote_webpage(ticker):
         value=value.get('raw') if isinstance(value,dict) else value
         if not finite(value): raise ValueError('Webpage quote field unavailable: '+field)
         return value
-    cur,prev,stamp=raw('regularMarketPrice'),raw('regularMarketPreviousClose'),raw('regularMarketTime')
+    prev=raw('regularMarketPreviousClose')
+    extended={
+        'PRE': ('preMarketPrice','preMarketTime','preMarketChangePercent','PRE_MARKET','Yahoo Finance pre-market quote'),
+        'POST': ('postMarketPrice','postMarketTime','postMarketChangePercent','POST_MARKET','Yahoo Finance post-market quote'),
+    }.get(str(data.get('marketState') or '').upper())
+    if extended:
+        price_field,time_field,pct_field,session,source=extended
+        try:
+            cur,stamp=raw(price_field),raw(time_field)
+            current_pct=data.get(pct_field)
+            current_pct=current_pct.get('raw') if isinstance(current_pct,dict) else current_pct
+            if not finite(current_pct): current_pct=percentage(cur,prev)
+            return {'current_price':cur,'prev_close':prev,'current_pct_change':current_pct,
+                    'price_as_of':dt.datetime.fromtimestamp(stamp,dt.timezone.utc).isoformat(),
+                    'price_session':session,'source':source,'price_retrieved_at':now(),
+                    **({'currency':data.get('currency')} if data.get('currency') else {})}
+        except ValueError:
+            pass
+    cur,stamp=raw('regularMarketPrice'),raw('regularMarketTime')
     if cur<=0 or prev<=0: raise ValueError('Invalid webpage quote')
     currency=data.get('currency')
-    return {'current_price':cur,'prev_close':prev,'current_pct_change':percentage(cur,prev),'price_as_of':dt.datetime.fromtimestamp(stamp,dt.timezone.utc).isoformat(),'source':'Yahoo Finance quote webpage','price_retrieved_at':now(),**({'currency':currency} if currency else {})}
+    return {'current_price':cur,'prev_close':prev,'current_pct_change':percentage(cur,prev),'price_as_of':dt.datetime.fromtimestamp(stamp,dt.timezone.utc).isoformat(),'price_session':'REGULAR','source':'Yahoo Finance quote webpage','price_retrieved_at':now(),**({'currency':currency} if currency else {})}
 
 
 def previous_session_close(ticker, quote_time, currency):
@@ -223,9 +241,16 @@ def quote_chart(ticker):
             if meta.get('symbol','').upper()!=ticker.upper(): raise ValueError('Chart ticker mismatch')
             currency=meta.get('currency')
             if not isinstance(currency,str) or not currency: raise ValueError('Missing quote currency')
-            cur=meta.get('regularMarketPrice')
+            extended={
+                'PRE': ('preMarketPrice','preMarketTime','preMarketChangePercent','PRE_MARKET','Yahoo Finance pre-market chart quote'),
+                'POST': ('postMarketPrice','postMarketTime','postMarketChangePercent','POST_MARKET','Yahoo Finance post-market chart quote'),
+            }.get(str(meta.get('marketState') or '').upper())
+            session='REGULAR'; source='Yahoo Finance individual ticker chart'; extended_pct=None
+            if extended and finite(meta.get(extended[0])) and finite(meta.get(extended[1])):
+                cur=meta.get(extended[0]); stamp=meta.get(extended[1]); extended_pct=meta.get(extended[2]); session=extended[3]; source=extended[4]
+            else:
+                cur=meta.get('regularMarketPrice'); stamp=meta.get('regularMarketTime')
             prev=meta.get('previousClose')
-            stamp=meta.get('regularMarketTime')
             if not finite(cur) or cur<=0: raise ValueError('Missing regular price')
             if not finite(stamp) or stamp<=0: raise ValueError('Missing original market quote timestamp')
             quote_time=dt.datetime.fromtimestamp(stamp,dt.timezone.utc)
@@ -234,8 +259,8 @@ def quote_chart(ticker):
             if not finite(prev) or prev<=0:
                 close_data=previous_session_close(ticker,quote_time,currency)
                 prev=close_data['prev_close']
-            return {'current_price':cur,'prev_close':prev,'current_pct_change':percentage(cur,prev),
-                    'price_as_of':quote_time.isoformat(),'source':'Yahoo Finance individual ticker chart',
+            return {'current_price':cur,'prev_close':prev,'current_pct_change':extended_pct if finite(extended_pct) else percentage(cur,prev),
+                    'price_as_of':quote_time.isoformat(),'price_session':session,'source':source,
                     'price_retrieved_at':now(),'currency':currency,**close_data}
         except Exception as error: errors.append(host+': '+str(error))
     raise ValueError('Yahoo individual ticker chart unavailable: '+'; '.join(errors))

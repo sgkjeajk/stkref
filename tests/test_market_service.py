@@ -171,6 +171,46 @@ class QuoteChartTests(unittest.TestCase):
             market_service.dt.datetime = original_now
 
 
+class ExtendedQuoteTests(unittest.TestCase):
+    def test_pre_market_quote_is_selected_and_labeled(self):
+        original_page_quote = market_service.page_quote
+        try:
+            market_service.page_quote = lambda ticker: {
+                'symbol': ticker, 'marketState': 'PRE', 'currency': 'USD',
+                'regularMarketPrice': {'raw': 100},
+                'regularMarketPreviousClose': {'raw': 98},
+                'regularMarketTime': {'raw': 1700000000},
+                'preMarketPrice': {'raw': 101.5},
+                'preMarketTime': {'raw': 1700003600},
+                'preMarketChangePercent': {'raw': 3.5714286},
+            }
+            result = market_service.quote_webpage('TEST')
+        finally:
+            market_service.page_quote = original_page_quote
+        self.assertEqual(result['current_price'], 101.5)
+        self.assertEqual(result['price_session'], 'PRE_MARKET')
+        self.assertAlmostEqual(result['current_pct_change'], 3.5714286)
+
+    def test_post_market_quote_is_selected_and_labeled(self):
+        original_page_quote = market_service.page_quote
+        try:
+            market_service.page_quote = lambda ticker: {
+                'symbol': ticker, 'marketState': 'POST', 'currency': 'USD',
+                'regularMarketPrice': {'raw': 100},
+                'regularMarketPreviousClose': {'raw': 98},
+                'regularMarketTime': {'raw': 1700000000},
+                'postMarketPrice': {'raw': 99.25},
+                'postMarketTime': {'raw': 1700003600},
+                'postMarketChangePercent': {'raw': 1.2755102},
+            }
+            result = market_service.quote_webpage('TEST')
+        finally:
+            market_service.page_quote = original_page_quote
+        self.assertEqual(result['current_price'], 99.25)
+        self.assertEqual(result['price_session'], 'POST_MARKET')
+        self.assertAlmostEqual(result['current_pct_change'], 1.2755102)
+
+
 
 if __name__ == "__main__":
     unittest.main()

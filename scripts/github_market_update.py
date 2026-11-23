@@ -1,7 +1,7 @@
 """Actions entry point: price snapshot or one exact-symbol metadata lookup."""
 import os, json, datetime as dt
 from market_service import ROOT,atomic,lookup,now,refresh,symbol,validate,read_config,DEFAULT_PRICE_CHECKER
-from market_hours import market_open
+from market_hours import quote_window_open
 
 def configured_interval_seconds(config):
     return int(config.get("priceChecker", {}).get("intervalMinutes", 6)) * 60
@@ -90,10 +90,10 @@ if __name__=='__main__':
             raise SystemExit(0)
         if os.environ.get('TRIGGER_EVENT')=='schedule' and not history and not manual:
             at=dt.datetime.now(dt.timezone.utc)
-            eligible={x['ticker'] for x in config['instruments'] if x['enabled'] and categories.get(x['type'],True) and market_open(x['ticker'],at)}
+            eligible={x['ticker'] for x in config['instruments'] if x['enabled'] and categories.get(x['type'],True) and quote_window_open(x['ticker'],at)}
             if not eligible:
                 write_check_heartbeat(config,'skipped_market_closed',request_id,history)
-                print('Skipped scheduled quote scraping: neither SGX nor US regular market is open.')
+                print('Skipped scheduled quote scraping: neither SGX nor US regular/extended market is open.')
                 raise SystemExit(0)
             try: saved=json.loads((ROOT/'market-data.json').read_text(encoding='utf-8'))
             except (OSError,ValueError): saved={}
